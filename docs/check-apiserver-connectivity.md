@@ -1,7 +1,7 @@
-# Check Connectivity
+# Check API Server Connectivity
 
-We can use `check-connectivity` to verify that nodes can communicate with the
-Kubernetes API server:
+We can use `check-apiserver-connectivity` to verify that nodes can communicate
+with the Kubernetes API server:
 
 ```bash
 $ kubectl get nodes
@@ -26,13 +26,13 @@ $ kubectl az check-apiserver-connectivity --id "/subscriptions/$SUBSCRIPTION/res
 $ kubectl az check-apiserver-connectivity --subscription $SUBSCRIPTION --node-resource-group $NODERESOURCEGROUP --vmss $VMSS --instance-id $INSTANCEID
 ```
 
-The `check-connectivity` command verifies the connectivity between the nodes and
-the API server by executing the command `kubectl version` from the node itself.
-This command will try to contact the API server to get the Kubernetes version it
-is running, which is enough to verify the connectivity. We have to consider that
-`kubectl` uses the URL of the API server available in the `kubeconfig` file and
-not directly the IP address. It means that this connectivity check requires the
-DNS to be working correctly to succeed.
+The `check-apiserver-connectivity` command verifies the connectivity between the
+nodes and the API server by executing the command `kubectl version` from the
+node itself. This command will try to contact the API server to get the
+Kubernetes version it is running, which is enough to verify the connectivity. We
+have to consider that `kubectl` uses the URL of the API server available in the
+`kubeconfig` file and not directly the IP address. It means that this
+connectivity check requires the DNS to be working correctly to succeed.
 
 We can use the flag `-v`/`--verbose` to have further details about the command
 that is being executed in the nodes to check connectivity:
@@ -65,7 +65,7 @@ Response:
 Connectivity check: succeeded
 ```
 
-Given that the `check-connectivity` command checks the connectivity by running a
-command on the nodes, all the
+Given that the `check-apiserver-connectivity` command checks the connectivity by
+running a command on the nodes, all the
 [restrictions](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/run-command#restrictions)
 of running scripts in an Azure Linux VM also apply here.
