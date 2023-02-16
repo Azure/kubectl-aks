@@ -61,12 +61,6 @@ However, if you do not have the Azure CLI or have not signed in yet,
 `kubectl-az` will open the default browser and load the Azure sign-in page where
 you need to authenticate.
 
-## Future
-
-- `kubectl-az` does not store the access token as Azure CLI does. Therefore,
-  unless you sign in using Azure CLI, `kubectl-az` will request you to
-  authenticate with the default web browser at every execution.
-
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require

@@ -4,10 +4,27 @@
 package utils
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
+)
+
+// https://github.com/Azure/azure-sdk-for-go/blob/sdk/azidentity/v0.13.0/sdk/azidentity/azidentity.go#L25
+const (
+	organizationsTenantID   = "organizations"
+	developerSignOnClientID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 )
 
 // Further details about authentication:
@@ -19,7 +36,7 @@ func GetCredentials() (*azidentity.ChainedTokenCredential, error) {
 	}
 
 	// Fallback if users didn't get already authenticated using the Azure CLI
-	inBrowser, err := azidentity.NewInteractiveBrowserCredential(nil)
+	inBrowser, err := newCachedInteractiveBrowserCredential()
 	if err != nil {
 		return nil, fmt.Errorf("error creating interactive authentication chain: %w", err)
 	}
@@ -31,4 +48,86 @@ func GetCredentials() (*azidentity.ChainedTokenCredential, error) {
 	}
 
 	return chain, nil
+}
+
+// cachedInteractiveBrowserCredential is a credential that uses the interactive browser to authenticate and caches the token.
+// TODO: This is a workaround until the azidentity package supports caching, https://github.com/Azure/azure-sdk-for-go/issues/16643.
+type cachedInteractiveBrowserCredential struct {
+	client public.Client
+}
+
+func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredential, error) {
+	file := path.Join(cacheDir(), "token-cache.json")
+	if err := os.MkdirAll(path.Dir(file), 0700); err != nil {
+		return nil, fmt.Errorf("creating cache directory: %w", err)
+	}
+
+	client, err := public.New(developerSignOnClientID,
+		public.WithCache(&tokenCache{file: file}),
+		public.WithAuthority(runtime.JoinPaths(string(azidentity.AzurePublicCloud), organizationsTenantID)),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("creating public client: %w", err)
+	}
+
+	return &cachedInteractiveBrowserCredential{client: client}, nil
+}
+
+// GetToken implements the azcore.TokenCredential interface on cachedInteractiveBrowserCredential.
+func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (*azcore.AccessToken, error) {
+	// TODO: may be this can be improved with https://github.com/Azure/kubectl-az/issues/11
+	var account public.Account
+	if len(c.client.Accounts()) > 0 {
+		account = c.client.Accounts()[len(c.client.Accounts())-1]
+	}
+	result, err := c.client.AcquireTokenSilent(ctx, options.Scopes, public.WithSilentAccount(account))
+	if err != nil {
+		result, err = c.client.AcquireTokenInteractive(ctx, options.Scopes)
+		if err != nil {
+			return nil, fmt.Errorf("acquiring interactive token: %w", err)
+		}
+	}
+	return &azcore.AccessToken{Token: result.AccessToken, ExpiresOn: result.ExpiresOn}, nil
+}
+
+// tokenCache implements basic file based cache.ExportReplace to be used with the public.Client.
+type tokenCache struct {
+	file string
+}
+
+func (t *tokenCache) Replace(cache cache.Unmarshaler, key string) {
+	data, err := os.ReadFile(t.file)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		fmt.Fprintf(os.Stderr, "Warn: reading token cache: %s\n", err)
+	}
+	err = cache.Unmarshal(data)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warn: unmarshaling token cache: %s\n", err)
+	}
+}
+
+func (t *tokenCache) Export(cache cache.Marshaler, key string) {
+	data, err := cache.Marshal()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warn: marshaling token cache: %s\n", err)
+	}
+	var indentedData bytes.Buffer
+	if err = json.Indent(&indentedData, data, "", "  "); err == nil {
+		data = indentedData.Bytes()
+	}
+	err = os.WriteFile(t.file, data, 0600)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warn: writing token cache: %s\n", err)
+	}
+}
+
+// cacheDir returns the directory where the cache file is stored.
+// It will use the home directory if possible otherwise the current directory.
+func cacheDir() string {
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warn: getting home directory: %s\n", err)
+		fmt.Fprintf(os.Stderr, "Warn: using current directory for cache\n")
+	}
+	return path.Join(dir, ".kubectl-az")
 }

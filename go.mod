@@ -7,6 +7,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.13.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v0.3.0
 	github.com/Azure/go-autorest/autorest/to v0.4.0
+	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
 	github.com/kinvolk/inspektor-gadget v0.4.2
 	github.com/spf13/cobra v1.3.0
 	k8s.io/apimachinery v0.23.3
@@ -17,7 +18,6 @@ require (
 	github.com/Azure/azure-sdk-for-go v61.1.0+incompatible // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v0.8.3 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
