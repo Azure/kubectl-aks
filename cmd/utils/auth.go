@@ -57,7 +57,7 @@ type cachedInteractiveBrowserCredential struct {
 }
 
 func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredential, error) {
-	file := path.Join(cacheDir(), "token-cache.json")
+	file := path.Join(configDir(), "token-cache.json")
 	if err := os.MkdirAll(path.Dir(file), 0700); err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}
@@ -119,15 +119,4 @@ func (t *tokenCache) Export(cache cache.Marshaler, key string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warn: writing token cache: %s\n", err)
 	}
-}
-
-// cacheDir returns the directory where the cache file is stored.
-// It will use the home directory if possible otherwise the current directory.
-func cacheDir() string {
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warn: getting home directory: %s\n", err)
-		fmt.Fprintf(os.Stderr, "Warn: using current directory for cache\n")
-	}
-	return path.Join(dir, ".kubectl-az")
 }
