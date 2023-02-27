@@ -41,7 +41,7 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 
 	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get vm: %w", err)
+		return fmt.Errorf("getting vm: %w", err)
 	}
 
 	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose)

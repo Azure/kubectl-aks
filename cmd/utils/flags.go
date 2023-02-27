@@ -6,6 +6,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ const (
 	SubscriptionIDKey    = "subscription"
 	NodeResourceGroupKey = "node-resource-group"
 	VMSSKey              = "vmss"
-	InstanceIDKey        = "instance-id"
+	VMSSInstanceIDKey    = "instance-id"
 	ResourceIDKey        = "id"
 )
 
@@ -25,8 +26,8 @@ var (
 	node              string
 	subscriptionID    string
 	nodeResourceGroup string
-	vmScaleSet        string
-	instanceID        string
+	vmss              string
+	vmssInstanceID    string
 	resourceID        string
 )
 
@@ -49,6 +50,15 @@ func AddCommonFlags(command *cobra.Command, flags *CommonFlags) {
 // (2) Provide the VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)
 // (3) Provide Resource ID (/subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID)
 func AddNodeFlags(command *cobra.Command) {
+	addNodeFlags(command, false)
+}
+
+// AddNodeFlagsOnly adds node flags without binding config/environment variables
+func AddNodeFlagsOnly(command *cobra.Command) {
+	addNodeFlags(command, true)
+}
+
+func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 	command.PersistentFlags().StringVarP(
 		&node,
 		NodeKey, "",
@@ -68,14 +78,14 @@ func AddNodeFlags(command *cobra.Command) {
 		"Node resource group name.",
 	)
 	command.PersistentFlags().StringVarP(
-		&vmScaleSet,
+		&vmss,
 		VMSSKey, "",
 		"",
 		"Virtual machine scale set name.",
 	)
 	command.PersistentFlags().StringVarP(
-		&instanceID,
-		InstanceIDKey, "",
+		&vmssInstanceID,
+		VMSSInstanceIDKey, "",
 		"",
 		"VM scale set instance ID.",
 	)
@@ -89,45 +99,56 @@ func AddNodeFlags(command *cobra.Command) {
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if err := LoadCurrentInstanceConfig(); err != nil {
-			return fmt.Errorf("failed to load config: %w", err)
-		}
-		if err := BindEnvAndFlags(cmd); err != nil {
-			return fmt.Errorf("failed to bind env and flags: %w", err)
-		}
+		if !useFlagsOnly {
+			if err := loadCurrentNodeConfig(); err != nil {
+				return fmt.Errorf("loading config: %w", err)
+			}
+			// bind environment variables
+			config.AutomaticEnv()
+			config.SetEnvPrefix("kubectl_az")
+			config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-		// set the values from config with precedence:
-		// (1) CLI flag
-		// (2) environment variable
-		// (3) config file
-		node = GetConfig(NodeKey)
-		subscriptionID = GetConfig(SubscriptionIDKey)
-		nodeResourceGroup = GetConfig(NodeResourceGroupKey)
-		vmScaleSet = GetConfig(VMSSKey)
-		instanceID = GetConfig(InstanceIDKey)
-		resourceID = GetConfig(ResourceIDKey)
+			// bind CLI flags
+			if err := config.BindPFlags(cmd.PersistentFlags()); err != nil {
+				return fmt.Errorf("binding flags: %w", err)
+			}
+
+			// set the values with precedence:
+			// (1) CLI flag
+			// (2) environment variable
+			// (3) config file
+			node = config.GetString(NodeKey)
+			subscriptionID = config.GetString(SubscriptionIDKey)
+			nodeResourceGroup = config.GetString(NodeResourceGroupKey)
+			vmss = config.GetString(VMSSKey)
+			vmssInstanceID = config.GetString(VMSSInstanceIDKey)
+			resourceID = config.GetString(ResourceIDKey)
+		}
 
 		// validate the config
-		var nodeSet, vmssSet, resourceIDSet bool
+		var nodeSet, vmssInfoSet, resourceIDSet bool
 		if node != "" {
 			nodeSet = true
 		}
-		if subscriptionID != "" && nodeResourceGroup != "" && vmScaleSet != "" && instanceID != "" {
-			vmssSet = true
+		if subscriptionID != "" && nodeResourceGroup != "" && vmss != "" && vmssInstanceID != "" {
+			vmssInfoSet = true
 		}
 		if resourceID != "" {
 			resourceIDSet = true
 		}
-		if !nodeSet && !vmssSet && !resourceIDSet {
+		if !nodeSet && !vmssInfoSet && !resourceIDSet {
+			if subscriptionID != "" || nodeResourceGroup != "" || vmss != "" || vmssInstanceID != "" {
+				return errors.New("specify complete VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
+			}
 			return errors.New("specify either 'node' or 'id' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 		} else if nodeSet {
-			if vmssSet {
+			if vmssInfoSet {
 				return errors.New("specify either 'node' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
 			if resourceIDSet {
 				return errors.New("specify either 'node' or 'id'")
 			}
-		} else if vmssSet {
+		} else if vmssInfoSet {
 			if resourceIDSet {
 				return errors.New("specify either VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id') or 'id'")
 			}

@@ -35,7 +35,7 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 
 	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get node: %w", err)
+		return fmt.Errorf("getting vm: %w", err)
 	}
 
 	// Check connectivity by executing "kubectl version" on the node. This

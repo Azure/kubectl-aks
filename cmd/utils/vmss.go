@@ -54,25 +54,25 @@ func ParseVMSSResourceID(id string, vm *VirtualMachineScaleSetVM) error {
 // VirtualMachineScaleSetVMFromConfig returns a VirtualMachineScaleSetVM object it assumes that the config is set and valid
 func VirtualMachineScaleSetVMFromConfig() (*VirtualMachineScaleSetVM, error) {
 	var vm VirtualMachineScaleSetVM
-	if IsConfigSet(NodeKey) {
+	if config.IsSet(NodeKey) {
 		var err error
-		resourceID, err = GetNodeResourceID(context.TODO(), GetConfig(NodeKey))
+		resourceID, err = GetNodeResourceID(context.TODO(), config.GetString(NodeKey))
 		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve Azure resource ID of node %s from API server: %w",
+			return nil, fmt.Errorf("retrieving Azure resource ID of node %s from API server: %w",
 				node, err)
 		}
 		if err = ParseVMSSResourceID(resourceID, &vm); err != nil {
-			return nil, fmt.Errorf("failed to parse Azure resource ID %s: %w", resourceID, err)
+			return nil, fmt.Errorf("parsing Azure resource ID %s: %w", resourceID, err)
 		}
-	} else if IsConfigSet(ResourceIDKey) {
-		if err := ParseVMSSResourceID(GetConfig(ResourceIDKey), &vm); err != nil {
-			return nil, fmt.Errorf("failed to parse Azure resource ID %s: %w", resourceID, err)
+	} else if config.IsSet(ResourceIDKey) {
+		if err := ParseVMSSResourceID(config.GetString(ResourceIDKey), &vm); err != nil {
+			return nil, fmt.Errorf("parsing Azure resource ID %s: %w", resourceID, err)
 		}
 	} else {
-		vm.SubscriptionID = GetConfig(SubscriptionIDKey)
-		vm.NodeResourceGroup = GetConfig(NodeResourceGroupKey)
-		vm.VMScaleSet = GetConfig(VMSSKey)
-		vm.InstanceID = GetConfig(InstanceIDKey)
+		vm.SubscriptionID = config.GetString(SubscriptionIDKey)
+		vm.NodeResourceGroup = config.GetString(NodeResourceGroupKey)
+		vm.VMScaleSet = config.GetString(VMSSKey)
+		vm.InstanceID = config.GetString(VMSSInstanceIDKey)
 	}
 
 	return &vm, nil
