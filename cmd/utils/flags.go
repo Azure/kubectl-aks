@@ -4,7 +4,6 @@
 package utils
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -49,7 +48,7 @@ func AddCommonFlags(command *cobra.Command, flags *CommonFlags) {
 // (1) Provide the kubernetes node name
 // (2) Provide the VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)
 // (3) Provide Resource ID (/subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID)
-func AddNodeFlags(command *cobra.Command, vm *VirtualMachineScaleSetVM) {
+func AddNodeFlags(command *cobra.Command) {
 	command.PersistentFlags().StringVarP(
 		&node,
 		NodeKey, "",
@@ -108,34 +107,30 @@ func AddNodeFlags(command *cobra.Command, vm *VirtualMachineScaleSetVM) {
 		instanceID = GetConfig(InstanceIDKey)
 		resourceID = GetConfig(ResourceIDKey)
 
+		// validate the config
+		var nodeSet, vmssSet, resourceIDSet bool
 		if node != "" {
-			if resourceID != "" {
-				return errors.New("specify either --node or --id but not both")
-			}
-
-			var err error
-			resourceID, err = GetNodeResourceID(context.TODO(), node)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve Azure resource ID of node %s from API server: %w",
-					node, err)
-			}
+			nodeSet = true
 		}
-
 		if subscriptionID != "" && nodeResourceGroup != "" && vmScaleSet != "" && instanceID != "" {
-			if resourceID != "" {
-				return errors.New("do not provide VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id) when --node or --id were provided")
+			vmssSet = true
+		}
+		if resourceID != "" {
+			resourceIDSet = true
+		}
+		if !nodeSet && !vmssSet && !resourceIDSet {
+			return errors.New("specify either 'node' or 'id' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
+		} else if nodeSet {
+			if vmssSet {
+				return errors.New("specify either 'node' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
-
-			vm.SubscriptionID = subscriptionID
-			vm.NodeResourceGroup = nodeResourceGroup
-			vm.VMScaleSet = vmScaleSet
-			vm.InstanceID = instanceID
-		} else if resourceID != "" {
-			if err := ParseVMSSResourceID(resourceID, vm); err != nil {
-				return fmt.Errorf("failed to parse resource id: %w", err)
+			if resourceIDSet {
+				return errors.New("specify either 'node' or 'id'")
 			}
-		} else {
-			return errors.New("specify either --node or --id or VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)")
+		} else if vmssSet {
+			if resourceIDSet {
+				return errors.New("specify either VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id') or 'id'")
+			}
 		}
 
 		return nil

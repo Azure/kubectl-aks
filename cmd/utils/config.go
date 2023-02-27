@@ -51,6 +51,10 @@ func GetConfig(key string) string {
 	return config.GetString(key)
 }
 
+func IsConfigSet(key string) bool {
+	return config.IsSet(key)
+}
+
 // configDir returns the directory where the cache file is stored.
 // It will use the home directory if possible otherwise the current directory.
 func configDir() string {
