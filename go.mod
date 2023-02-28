@@ -11,6 +11,7 @@ require (
 	github.com/kinvolk/inspektor-gadget v0.4.2
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.15.0
+	github.com/stretchr/testify v1.8.2
 	k8s.io/apimachinery v0.23.3
 	k8s.io/cli-runtime v0.23.3
 )
@@ -61,7 +62,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
