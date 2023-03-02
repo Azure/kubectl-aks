@@ -13,12 +13,12 @@ import (
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Manage configuration for kubectl-az",
+	Short: "Manage configuration",
 }
 
 var showConfigCmd = &cobra.Command{
 	Use:          "show",
-	Short:        "Show the configuration for kubectl-az",
+	Short:        "Show the configuration",
 	RunE:         showConfigCmdRun,
 	SilenceUsage: true,
 }
@@ -54,6 +54,7 @@ var unsetAllCmd = &cobra.Command{
 var setNodeCmd = &cobra.Command{
 	Use:          "set-node",
 	Short:        "Set a given node in the configuration",
+	Long:         "Set a given node in the configuration. Also, node, resource id and VMSS instance information are mutually exclusive",
 	RunE:         setNodeCmdRun,
 	SilenceUsage: true,
 }
@@ -61,13 +62,8 @@ var setNodeCmd = &cobra.Command{
 func init() {
 	utils.AddCommonFlags(configCmd, &commonFlags)
 	rootCmd.AddCommand(configCmd)
-	configCmd.AddCommand(showConfigCmd)
 
-	configCmd.AddCommand(useNodeCmd)
-	configCmd.AddCommand(unsetCurrentNodeCmd)
-	configCmd.AddCommand(unsetNodeCmd)
-	configCmd.AddCommand(unsetAllCmd)
-	configCmd.AddCommand(setNodeCmd)
+	configCmd.AddCommand(showConfigCmd, useNodeCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd)
 	utils.AddNodeFlagsOnly(setNodeCmd)
 }
 
@@ -77,7 +73,7 @@ func showConfigCmdRun(cmd *cobra.Command, args []string) error {
 
 func useNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("usage: %s <node>", cmd.CommandPath())
+		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
 	return utils.UseNodeConfig(args[0])
 }
@@ -88,7 +84,7 @@ func unsetCurrentNodeCmdRun(cmd *cobra.Command, args []string) error {
 
 func unsetNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("usage: %s <node>", cmd.CommandPath())
+		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
 	return utils.UnsetNodeConfig(args[0])
 }
@@ -99,7 +95,7 @@ func unsetAllCmdRun(cmd *cobra.Command, args []string) error {
 
 func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("usage: %s <node>", cmd.CommandPath())
+		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
 	return utils.SetNodeConfig(args[0])
 }
