@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/Azure/kubectl-az/cmd/utils/config"
 )
 
 const (
@@ -99,9 +101,10 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		config := config.New()
 		if !useFlagsOnly {
-			if err := loadCurrentNodeConfig(); err != nil {
-				return fmt.Errorf("loading config: %w", err)
+			if cc, ok := config.CurrentConfig(); ok {
+				config = cc
 			}
 			// bind environment variables
 			config.AutomaticEnv()

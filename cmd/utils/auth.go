@@ -19,6 +19,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
+
+	"github.com/Azure/kubectl-az/cmd/utils/config"
 )
 
 // https://github.com/Azure/azure-sdk-for-go/blob/sdk/azidentity/v0.13.0/sdk/azidentity/azidentity.go#L25
@@ -57,7 +59,7 @@ type cachedInteractiveBrowserCredential struct {
 }
 
 func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredential, error) {
-	file := path.Join(configDir(), "token-cache.json")
+	file := path.Join(config.Dir(), "token-cache.json")
 	if err := os.MkdirAll(path.Dir(file), 0700); err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}

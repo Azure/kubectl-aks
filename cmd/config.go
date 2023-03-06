@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Azure/kubectl-az/cmd/utils"
+	"github.com/Azure/kubectl-az/cmd/utils/config"
 )
 
 var configCmd = &cobra.Command{
@@ -68,34 +69,46 @@ func init() {
 }
 
 func showConfigCmdRun(cmd *cobra.Command, args []string) error {
-	return utils.ShowConfig()
+	return config.New().ShowConfig()
 }
 
 func useNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
-	return utils.UseNodeConfig(args[0])
+	return config.New().UseNodeConfig(args[0])
 }
 
 func unsetCurrentNodeCmdRun(cmd *cobra.Command, args []string) error {
-	return utils.UnsetCurrentNodeConfig()
+	return config.New().UnsetCurrentNodeConfig()
 }
 
 func unsetNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
-	return utils.UnsetNodeConfig(args[0])
+	return config.New().UnsetNodeConfig(args[0])
 }
 
 func unsetAllCmdRun(cmd *cobra.Command, args []string) error {
-	return utils.UnsetAllConfig()
+	return config.New().UnsetAllConfig()
 }
 
 func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
 	}
-	return utils.SetNodeConfig(args[0])
+
+	cfg := config.New()
+	if nf := cmd.Flag(utils.NodeKey).Value.String(); nf != "" {
+		return cfg.SetNodeConfigWithNodeFlag(args[0], nf)
+	} else if rid := cmd.Flag(utils.ResourceIDKey).Value.String(); rid != "" {
+		return cfg.SetNodeConfigWithResourceIDFlag(args[0], rid)
+	} else {
+		subID := cmd.Flag(utils.SubscriptionIDKey).Value.String()
+		nrg := cmd.Flag(utils.NodeResourceGroupKey).Value.String()
+		vmss := cmd.Flag(utils.VMSSKey).Value.String()
+		insID := cmd.Flag(utils.VMSSInstanceIDKey).Value.String()
+		return cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
+	}
 }
