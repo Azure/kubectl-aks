@@ -14,8 +14,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var connCheckVM utils.VirtualMachineScaleSetVM
-
 var connCheckCmd = &cobra.Command{
 	Use:          "check-apiserver-connectivity",
 	Short:        "Check connectivity between the nodes and the Kubernetes API Server",
@@ -24,7 +22,7 @@ var connCheckCmd = &cobra.Command{
 }
 
 func init() {
-	utils.AddNodeFlags(connCheckCmd, &connCheckVM)
+	utils.AddNodeFlags(connCheckCmd)
 	utils.AddCommonFlags(connCheckCmd, &commonFlags)
 	rootCmd.AddCommand(connCheckCmd)
 }
@@ -35,11 +33,16 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to authenticate: %w", err)
 	}
 
+	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
+	if err != nil {
+		return fmt.Errorf("getting vm: %w", err)
+	}
+
 	// Check connectivity by executing "kubectl version" on the node. This
 	// command will try to contact the API server to get the Kubernetes version
 	// it is running. Use only the return value of the command, tough.
 	command := "kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo $?"
-	res, err := utils.RunCommand(cmd.Context(), cred, &connCheckVM, &command, commonFlags.Verbose)
+	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose)
 	if err != nil {
 		return fmt.Errorf("failed to run command that checks connectivity: %w", err)
 	}

@@ -1,0 +1,11 @@
+current-node: test-node
+nodes:
+    test-id:
+        id: /subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID
+    test-node:
+        node: myNode
+    test-vmss-info:
+        instance-id: myInsID
+        node-resource-group: myRG
+        subscription: mySubID
+        vmss: myVMSS

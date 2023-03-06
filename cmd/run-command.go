@@ -10,10 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	command      string
-	runCommandVM utils.VirtualMachineScaleSetVM
-)
+var command string
 
 var runCommandCmd = &cobra.Command{
 	Use:          "run-command",
@@ -31,7 +28,7 @@ var runCommandCmd = &cobra.Command{
 }
 
 func init() {
-	utils.AddNodeFlags(runCommandCmd, &runCommandVM)
+	utils.AddNodeFlags(runCommandCmd)
 	utils.AddCommonFlags(runCommandCmd, &commonFlags)
 	rootCmd.AddCommand(runCommandCmd)
 }
@@ -42,7 +39,12 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to authenticate: %w", err)
 	}
 
-	res, err := utils.RunCommand(cmd.Context(), cred, &runCommandVM, &command, commonFlags.Verbose)
+	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
+	if err != nil {
+		return fmt.Errorf("getting vm: %w", err)
+	}
+
+	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose)
 	if err != nil {
 		return fmt.Errorf("failed to run command: %w", err)
 	}

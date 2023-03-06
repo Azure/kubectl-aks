@@ -4,11 +4,33 @@
 package utils
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
+
+	"github.com/Azure/kubectl-az/cmd/utils/config"
+)
+
+const (
+	NodeKey              = "node"
+	SubscriptionIDKey    = "subscription"
+	NodeResourceGroupKey = "node-resource-group"
+	VMSSKey              = "vmss"
+	VMSSInstanceIDKey    = "instance-id"
+	ResourceIDKey        = "id"
+)
+
+// We need package level variables to ensure that the viper flag binding works correctly.
+// See: https://github.com/spf13/viper/issues/375#issuecomment-578552586
+var (
+	node              string
+	subscriptionID    string
+	nodeResourceGroup string
+	vmss              string
+	vmssInstanceID    string
+	resourceID        string
 )
 
 // CommonFlags contains CLI flags common for all subcommands
@@ -29,49 +51,49 @@ func AddCommonFlags(command *cobra.Command, flags *CommonFlags) {
 // (1) Provide the kubernetes node name
 // (2) Provide the VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)
 // (3) Provide Resource ID (/subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID)
-func AddNodeFlags(command *cobra.Command, vm *VirtualMachineScaleSetVM) {
-	var (
-		node              string
-		subscriptionID    string
-		nodeResourceGroup string
-		vmScaleSet        string
-		instanceID        string
-		resourceID        string
-	)
+func AddNodeFlags(command *cobra.Command) {
+	addNodeFlags(command, false)
+}
 
+// AddNodeFlagsOnly adds node flags without binding config/environment variables
+func AddNodeFlagsOnly(command *cobra.Command) {
+	addNodeFlags(command, true)
+}
+
+func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 	command.PersistentFlags().StringVarP(
 		&node,
-		"node", "",
+		NodeKey, "",
 		"",
 		"Kubernetes node name.",
 	)
 	command.PersistentFlags().StringVarP(
 		&subscriptionID,
-		"subscription", "",
+		SubscriptionIDKey, "",
 		"",
 		"Subscription ID.",
 	)
 	command.PersistentFlags().StringVarP(
 		&nodeResourceGroup,
-		"node-resource-group", "",
+		NodeResourceGroupKey, "",
 		"",
 		"Node resource group name.",
 	)
 	command.PersistentFlags().StringVarP(
-		&vmScaleSet,
-		"vmss", "",
+		&vmss,
+		VMSSKey, "",
 		"",
 		"Virtual machine scale set name.",
 	)
 	command.PersistentFlags().StringVarP(
-		&instanceID,
-		"instance-id", "",
+		&vmssInstanceID,
+		VMSSInstanceIDKey, "",
 		"",
 		"VM scale set instance ID.",
 	)
 	command.PersistentFlags().StringVarP(
 		&resourceID,
-		"id", "",
+		ResourceIDKey, "",
 		"",
 		`Resource ID containing all information of the VMSS instance using format:
 		e.g. /subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID.
@@ -79,34 +101,60 @@ func AddNodeFlags(command *cobra.Command, vm *VirtualMachineScaleSetVM) {
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if node != "" {
-			if resourceID != "" {
-				return errors.New("specify either --node or --id but not both")
+		config := config.New()
+		if !useFlagsOnly {
+			if cc, ok := config.CurrentConfig(); ok {
+				config = cc
+			}
+			// bind environment variables
+			config.AutomaticEnv()
+			config.SetEnvPrefix("kubectl_az")
+			config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+			// bind CLI flags
+			if err := config.BindPFlags(cmd.PersistentFlags()); err != nil {
+				return fmt.Errorf("binding flags: %w", err)
 			}
 
-			var err error
-			resourceID, err = GetNodeResourceID(context.TODO(), node)
-			if err != nil {
-				return fmt.Errorf("failed to retrieve Azure resource ID of node %s from API server: %w",
-					node, err)
-			}
+			// set the values with precedence:
+			// (1) CLI flag
+			// (2) environment variable
+			// (3) config file
+			node = config.GetString(NodeKey)
+			subscriptionID = config.GetString(SubscriptionIDKey)
+			nodeResourceGroup = config.GetString(NodeResourceGroupKey)
+			vmss = config.GetString(VMSSKey)
+			vmssInstanceID = config.GetString(VMSSInstanceIDKey)
+			resourceID = config.GetString(ResourceIDKey)
 		}
 
-		if subscriptionID != "" && nodeResourceGroup != "" && vmScaleSet != "" && instanceID != "" {
-			if resourceID != "" {
-				return errors.New("do not provide VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id) when --node or --id were provided")
+		// validate the config
+		var nodeSet, vmssInfoSet, resourceIDSet bool
+		if node != "" {
+			nodeSet = true
+		}
+		if subscriptionID != "" && nodeResourceGroup != "" && vmss != "" && vmssInstanceID != "" {
+			vmssInfoSet = true
+		}
+		if resourceID != "" {
+			resourceIDSet = true
+		}
+		if !nodeSet && !vmssInfoSet && !resourceIDSet {
+			if subscriptionID != "" || nodeResourceGroup != "" || vmss != "" || vmssInstanceID != "" {
+				return errors.New("specify complete VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
-
-			vm.SubscriptionID = subscriptionID
-			vm.NodeResourceGroup = nodeResourceGroup
-			vm.VMScaleSet = vmScaleSet
-			vm.InstanceID = instanceID
-		} else if resourceID != "" {
-			if err := ParseVMSSResourceID(resourceID, vm); err != nil {
-				return fmt.Errorf("failed to parse resource id: %w", err)
+			return errors.New("specify either 'node' or 'id' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
+		} else if nodeSet {
+			if vmssInfoSet {
+				return errors.New("specify either 'node' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
-		} else {
-			return errors.New("specify either --node or --id or VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)")
+			if resourceIDSet {
+				return errors.New("specify either 'node' or 'id'")
+			}
+		} else if vmssInfoSet {
+			if resourceIDSet {
+				return errors.New("specify either VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id') or 'id'")
+			}
 		}
 
 		return nil

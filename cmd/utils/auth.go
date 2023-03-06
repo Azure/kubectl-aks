@@ -19,6 +19,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
+
+	"github.com/Azure/kubectl-az/cmd/utils/config"
 )
 
 // https://github.com/Azure/azure-sdk-for-go/blob/sdk/azidentity/v0.13.0/sdk/azidentity/azidentity.go#L25
@@ -57,7 +59,7 @@ type cachedInteractiveBrowserCredential struct {
 }
 
 func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredential, error) {
-	file := path.Join(cacheDir(), "token-cache.json")
+	file := path.Join(config.Dir(), "token-cache.json")
 	if err := os.MkdirAll(path.Dir(file), 0700); err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}
@@ -119,15 +121,4 @@ func (t *tokenCache) Export(cache cache.Marshaler, key string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warn: writing token cache: %s\n", err)
 	}
-}
-
-// cacheDir returns the directory where the cache file is stored.
-// It will use the home directory if possible otherwise the current directory.
-func cacheDir() string {
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warn: getting home directory: %s\n", err)
-		fmt.Fprintf(os.Stderr, "Warn: using current directory for cache\n")
-	}
-	return path.Join(dir, ".kubectl-az")
 }

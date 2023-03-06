@@ -8,6 +8,7 @@ available command and which one is the most suitable for your case:
 
 - [run-command](docs/run-command.md)
 - [check-apiserver-connectivity](docs/check-apiserver-connectivity.md)
+- [config](docs/config.md)
 
 Consider `kubectl-az` expects the cluster to use virtual machine scale sets.
 And, commands that allow using `--node` flag requires the Kubernetes API server
@@ -40,11 +41,12 @@ Usage:
   kubectl-az [command]
 
 Available Commands:
-  check-apiserver-connectivity  Check connectivity between the nodes and the Kubernetes API Server
-  completion                    Generate the autocompletion script for the specified shell
-  help                          Help about any command
-  run-command                   Run a command in a node
-  version                       Show version
+  check-apiserver-connectivity Check connectivity between the nodes and the Kubernetes API Server
+  completion                   Generate the autocompletion script for the specified shell
+  config                       Manage configuration
+  help                         Help about any command
+  run-command                  Run a command in a node
+  version                      Show version
 
 Flags:
   -h, --help   help for kubectl-az
