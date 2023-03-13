@@ -55,6 +55,41 @@ $ kubectl az check-apiserver-connectivity
 There is also an option to unset node information from the configuration using
 the `unset-node`/`unset-all`/`unset-current-node` commands.
 
+## Importing configuration
+
+We can also import the node information using the AKS cluster credentials already available in the `kubeconfig` file:
+
+```bash
+# Create a cluster
+$ az aks create ...
+$ az aks get-credentials ...
+$ kubectl get nodes
+NAME                                STATUS   ROLES   AGE   VERSION
+aks-agentpool-12345678-vmss000000   Ready    agent   4m    v1.23.15
+aks-agentpool-12345678-vmss000001   Ready    agent   4m    v1.23.15
+aks-agentpool-12345678-vmss000002   Ready    agent   4m    v1.23.15
+# Import nodes into kubectl-az
+$ kubectl az config import
+$ kubectl az config show
+nodes:
+    aks-agentpool-12345678-vmss000000:
+        instance-id: "0"
+        subscription: mySubID
+        node-resource-group: myNRG
+        vmss: myVMSS
+    aks-agentpool-12345678-vmss000001:
+        instance-id: "1"
+        [...]
+    aks-agentpool-12345678-vmss000002:
+        instance-id: "2"
+        [...]
+# Start using one of those nodes
+$ kubectl az use-node aks-agentpool-12345678-vmss000000
+```
+
+The information is stored with node name as key and VMSS instance information as value to avoid talking to be able
+to continue talking with the node, even if the API server is not working correctly.
+
 ## Precedence of configuration
 
 Apart from the configuration file, we can also use the flags and environment variables to
