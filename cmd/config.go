@@ -60,11 +60,18 @@ var setNodeCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
+var importCmd = &cobra.Command{
+	Use:          "import",
+	Short:        "Import Kubernetes nodes in the configuration",
+	RunE:         importCmdRun,
+	SilenceUsage: true,
+}
+
 func init() {
 	utils.AddCommonFlags(configCmd, &commonFlags)
 	rootCmd.AddCommand(configCmd)
 
-	configCmd.AddCommand(showConfigCmd, useNodeCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd)
+	configCmd.AddCommand(showConfigCmd, useNodeCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd, importCmd)
 	utils.AddNodeFlagsOnly(setNodeCmd)
 }
 
@@ -111,4 +118,19 @@ func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 		insID := cmd.Flag(utils.VMSSInstanceIDKey).Value.String()
 		return cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
 	}
+}
+
+func importCmdRun(cmd *cobra.Command, args []string) error {
+	vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
+	if err != nil {
+		return fmt.Errorf("failed to get VMSS VMs: %v", err)
+	}
+
+	cfg := config.New()
+	for nn, vm := range vms {
+		if err = cfg.SetNodeConfigWithVMSSInfoFlag(nn, vm.SubscriptionID, vm.NodeResourceGroup, vm.VMScaleSet, vm.InstanceID); err != nil {
+			return fmt.Errorf("failed to set node config for %s: %v", nn, err)
+		}
+	}
+	return nil
 }

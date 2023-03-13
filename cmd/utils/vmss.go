@@ -14,6 +14,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type VirtualMachineScaleSetVM struct {
@@ -76,6 +78,30 @@ func VirtualMachineScaleSetVMFromConfig() (*VirtualMachineScaleSetVM, error) {
 	}
 
 	return &vm, nil
+}
+
+func VirtualMachineScaleSetVMsViaKubeconfig() (map[string]*VirtualMachineScaleSetVM, error) {
+	clientset, err := k8sutil.NewClientsetFromConfigFlags(KubernetesConfigFlags)
+	if err != nil {
+		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing nodes: %w", err)
+	}
+
+	var vmssVMs = make(map[string]*VirtualMachineScaleSetVM)
+	if len(nodes.Items) > 0 {
+		for _, n := range nodes.Items {
+			var vm VirtualMachineScaleSetVM
+			if err = ParseVMSSResourceID(strings.TrimPrefix(n.Spec.ProviderID, "azure://"), &vm); err != nil {
+				return nil, fmt.Errorf("parsing Azure resource ID %s: %w", n.Spec.ProviderID, err)
+			}
+			vmssVMs[n.Name] = &vm
+		}
+	}
+	return vmssVMs, nil
 }
 
 func RunCommand(
