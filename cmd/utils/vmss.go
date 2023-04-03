@@ -14,6 +14,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type VirtualMachineScaleSetVM struct {
@@ -41,7 +43,7 @@ func ParseVMSSResourceID(id string, vm *VirtualMachineScaleSetVM) error {
 	n, err := fmt.Sscanf(idWithSpaces, "subscriptions %s resourcegroups %s providers %s virtualmachinescalesets %s virtualmachines %s",
 		&vm.SubscriptionID, &vm.NodeResourceGroup, &provider, &vm.VMScaleSet, &vm.InstanceID)
 	if err != nil {
-		return fmt.Errorf("error parsing provider ID %s: %w", id, err)
+		return fmt.Errorf("error parsing provider ID %q: %w", id, err)
 	}
 	if n != expectedItems {
 		return fmt.Errorf("%d values retrieved while expecting %d when parsing id %s",
@@ -76,6 +78,33 @@ func VirtualMachineScaleSetVMFromConfig() (*VirtualMachineScaleSetVM, error) {
 	}
 
 	return &vm, nil
+}
+
+func VirtualMachineScaleSetVMsViaKubeconfig() (map[string]*VirtualMachineScaleSetVM, error) {
+	clientset, err := k8sutil.NewClientsetFromConfigFlags(KubernetesConfigFlags)
+	if err != nil {
+		return nil, fmt.Errorf("creating Kubernetes client: %w", err)
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing nodes: %w", err)
+	}
+
+	var vmssVMs = make(map[string]*VirtualMachineScaleSetVM)
+	if len(nodes.Items) > 0 {
+		for _, n := range nodes.Items {
+			var vm VirtualMachineScaleSetVM
+			if !strings.HasPrefix(n.Spec.ProviderID, "azure://") {
+				return nil, fmt.Errorf("node=%q doesn't seem to be an Azure VMSS VM", n.Name)
+			}
+			if err = ParseVMSSResourceID(strings.TrimPrefix(n.Spec.ProviderID, "azure://"), &vm); err != nil {
+				return nil, fmt.Errorf("parsing Azure resource ID %q: %w", n.Spec.ProviderID, err)
+			}
+			vmssVMs[n.Name] = &vm
+		}
+	}
+	return vmssVMs, nil
 }
 
 func RunCommand(
