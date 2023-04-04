@@ -1,7 +1,7 @@
 name: Microsoft Azure CLI kubectl plugin CI
 env:
   GO_VERSION: 1.17 # TODO: Update
-  AZURE_PREFIX: kubectl-az-ci
+  AZURE_PREFIX: blanquicet-kubectl-az-ci
 concurrency:
   # Only one workflow can run at a time unless
   # we create a new AKS cluster per github_ref (branch)
