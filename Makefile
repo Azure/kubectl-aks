@@ -16,6 +16,7 @@ LDFLAGS := "-X github.com/Azure/kubectl-az/cmd.version=$(VERSION) -extldflags '-
 
 .DEFAULT_GOAL := kubectl-az
 
+# Build
 KUBECTL_AZ_TARGETS = \
 	kubectl-az-linux-amd64 \
 	kubectl-az-linux-arm64 \
@@ -48,11 +49,24 @@ kubectl-az-%: phony_explicit
 		-o kubectl-az-$${GOOS}-$${GOARCH} \
 		github.com/Azure/kubectl-az
 
+# Install
 .PHONY: install
 install: kubectl-az
 	mkdir -p ~/.local/bin/
 	cp kubectl-az ~/.local/bin/
 
+# Run unit tests
+.PHONY: unit-test
+unit-test:
+	go test -v ./...
+
+# Run integration tests
+.PHONY: integration-test
+integration-test: kubectl-az
+	KUBECTL_AZ="$(shell pwd)/kubectl-az" \
+		go test -v ./test/integration/... -integration
+
+# Clean
 .PHONY: clean
 clean:
 	rm -f kubectl-az
