@@ -32,6 +32,18 @@ to the commands using the `--id` flag or separately with the `--subscription`,
 
 There is multiple ways to install the `kubectl-aks`.
 
+### Using krew
+
+[krew](https://sigs.k8s.io/krew) is the recommended way to install `kubectl-aks`.
+You can follow the [krew's
+quickstart](https://krew.sigs.k8s.io/docs/user-guide/quickstart/) to install it
+and then install `kubectl-aks` by executing the following command:
+
+```bash
+kubectl krew install aks
+kubectl aks version
+```
+
 ### Install a specific release
 
 It is possible to download the asset for a given release and platform from the
@@ -39,7 +51,7 @@ It is possible to download the asset for a given release and platform from the
 move the `kubectl-aks` executable to any folder in your `$PATH`.
 
 ```bash
-VERSION=v0.1.0
+VERSION=v0.2.0
 curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C /usr/local/bin -xzf - kubectl-aks
 kubectl aks version
 ```
