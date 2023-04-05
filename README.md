@@ -1,7 +1,13 @@
 # Microsoft Azure CLI kubectl plugin
 
-`kubectl-az` is a set of commands used to troubleshoot Kubernetes clusters in
-Azure.
+`kubectl-az` is a `kubectl` plugin that provides a set of commands that can be
+used to debug an AKS cluster even when the cluster's control plane is not
+working correctly. For instance, when the API server is having problems.
+
+This plugin is not meant to replace
+[az](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest), but
+to complement it by providing additional commands and, mainly, allowing users to
+have a kubectl-like experience when working with an AKS cluster.
 
 Going through the following documentation will help you to understand each
 available command and which one is the most suitable for your case:
@@ -10,26 +16,46 @@ available command and which one is the most suitable for your case:
 - [check-apiserver-connectivity](docs/check-apiserver-connectivity.md)
 - [config](docs/config.md)
 
-Consider `kubectl-az` expects the cluster to use virtual machine scale sets.
-And, commands that allow using `--node` flag requires the Kubernetes API server
-to up and running because it is used to retrieve the VMSS instance information
-of nodes.
+Consider `kubectl-az` expects the cluster to use virtual machine scale sets,
+which is the case of an AKS cluster. And, the use of the `--node` flag requires
+the Kubernetes control plane to up and running, because the VMSS instance
+information of the node will be retrieved from the Kubernetes API server.
 
-However, in case of issues with the Kubernetes API server, we can retrieve the
-VMSS instance information from the [Azure portal](https://portal.azure.com/) and
-pass it to the commands using the `--id` flag or separately with the
-`--subscription`, `--node-resource-group`, `--vmss` and `--instance-id` flags.
+However, in case of issues with the Kubernetes control plane, you can reuse the
+already stored VMSS instance information, see [config](docs/config.md) command.
+Or, if it is a cluster you have never used before on that host, you can retrieve
+such information from the [Azure portal](https://portal.azure.com/) and pass it
+to the commands using the `--id` flag or separately with the `--subscription`,
+`--node-resource-group`, `--vmss` and `--instance-id` flags.
 
 ## Install
 
+There is multiple ways to install the `kubectl-az`.
+
+### Install a specific release
+
+It is possible to download the asset for a given release and platform from the
+[releases page](https://github.com/azure/kubectl-az/releases/), uncompress and
+move the `kubectl-az` executable to any folder in your `$PATH`.
+
 ```bash
-$ git clone https://github.com/Azure/kubectl-az.git
-$ cd kubectl-az
-# Build and copy the resulting binary in $HOME/.local/bin/
-$ make install
+VERSION=v0.1.0
+curl -sL https://github.com/azure/kubectl-az/releases/latest/download/kubectl-az-linux-amd64-${VERSION}.tar.gz | sudo tar -C /usr/local/bin -xzf - kubectl-az
+kubectl az version
 ```
 
-Notice it requires Go version 1.17.
+### Compile from source
+
+To build `kubectl-az` from source, you'll need to have a Golang version 1.17
+or higher installed:
+
+```bash
+git clone https://github.com/Azure/kubectl-az.git
+cd kubectl-az
+# Build and copy the resulting binary in $HOME/.local/bin/
+make install
+kubectl az version
+```
 
 ## Usage
 
