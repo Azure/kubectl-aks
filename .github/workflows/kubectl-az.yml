@@ -12,6 +12,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -60,7 +62,7 @@ jobs:
       - name: Add kubectl-az-${{ matrix.os }}-${{ matrix.arch }}.tar.gz as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: kubectl-az-${{ matrix.os }}-${{ matrix.arch }}
+          name: kubectl-az-${{ matrix.os }}-${{ matrix.arch }}-tar-gz
           path: kubectl-az-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
 
   unit-tests:
@@ -171,7 +173,7 @@ jobs:
       - name: Get kubectl-az from artifact
         uses: actions/download-artifact@v3
         with:
-          name: kubectl-az-${{ env.os }}-${{ matrix.arch }}
+          name: kubectl-az-${{ env.os }}-${{ matrix.arch }}-tar-gz
       - name: Prepare kubectl-az binary
         shell: bash
         run: |
@@ -195,3 +197,37 @@ jobs:
         shell: bash
         run: |
           make integration-test -o kubectl-az
+
+  release:
+    name: Release
+    needs: [ integration-tests ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    # Checkout the repo to get the .krew.yaml file
+    - uses: actions/checkout@v3
+    - name: Get all artifacts.
+      uses: actions/download-artifact@v3
+    - name: Rename all artifacts to kubectl-az-${{ github.ref_name }}.tar.gz
+      shell: bash
+      run: |
+        for i in kubectl-az-*-*-tar-gz/kubectl-az-*-*.tar.gz; do
+          mv $i $(dirname $i)/$(basename $i .tar.gz)-${{ github.ref_name }}.tar.gz
+        done
+    - name: Create Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        name: Release ${{ github.ref }}
+    - name: Upload kubectl-az binaries to the release
+      uses: csexton/release-asset-action@v2
+      with:
+        pattern: "kubectl-az-*-*-tar-gz/kubectl-az-*-*.tar.gz"
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        release-url: ${{ steps.create_release.outputs.upload_url }}
+    - name: Update new version in krew-index
+      if: github.repository == 'azure/kubectl-az'
+      uses: rajatjindal/krew-release-bot@v0.0.46
