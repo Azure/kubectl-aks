@@ -1,4 +1,4 @@
-module github.com/Azure/kubectl-az
+module github.com/Azure/kubectl-aks
 
 go 1.17
 

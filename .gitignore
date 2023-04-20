@@ -4,8 +4,8 @@
 *.dll
 *.so
 *.dylib
-/kubectl-az
-/kubectl-az-*-*
+/kubectl-aks
+/kubectl-aks-*-*
 
 # Test binary, built with `go test -c`
 *.test

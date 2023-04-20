@@ -1,16 +1,16 @@
 # Config
 
-We can use the `config` command to configure node information for `kubectl-az` commands.
+We can use the `config` command to configure node information for `kubectl-aks` commands.
 This allows ease of switching between different nodes and persisting the configuration. Nodes can be configured
 either specifying the `--node` or `--resource-id` or VMSS instance information(`--subscription`, `--node-resource-group`, `--vmss`, `--instance-id`).
 All three options are mutually exclusive:
 
 ```bash
-$ kubectl az config --help
+$ kubectl aks config --help
 Manage configuration
 
 Usage:
-  kubectl-az config [command]
+  kubectl-aks config [command]
 
 Available Commands:
   set-node           Set a given node in the configuration
@@ -24,15 +24,15 @@ Flags:
   -h, --help      help for config
   -v, --verbose   Verbose output.
 
-Use "kubectl-az config [command] --help" for more information about a command.
+Use "kubectl-aks config [command] --help" for more information about a command.
 ```
 
 As an example, we set a couple of nodes in the configuration (using VMSS instance information) and then switch between them:
 
 ```bash
-$ kubectl az config set-node node1 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID1
-$ kubectl az config set-node node2 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID2
-$ kubectl az show
+$ kubectl aks config set-node node1 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID1
+$ kubectl aks config set-node node2 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID2
+$ kubectl aks show
 nodes:
     node1:
         instance-id: myInstanceID1
@@ -45,11 +45,11 @@ nodes:
         subscription: mySubID
         vmss: myVMSS
 
-$ kubectl az config use-node node1
-$ kubectl az check-apiserver-connectivity
+$ kubectl aks config use-node node1
+$ kubectl aks check-apiserver-connectivity
 
-$ kubectl az config use-node node2
-$ kubectl az check-apiserver-connectivity
+$ kubectl aks config use-node node2
+$ kubectl aks check-apiserver-connectivity
 ```
 
 There is also an option to unset node information from the configuration using
@@ -68,9 +68,9 @@ NAME                                STATUS   ROLES   AGE   VERSION
 aks-agentpool-12345678-vmss000000   Ready    agent   4m    v1.23.15
 aks-agentpool-12345678-vmss000001   Ready    agent   4m    v1.23.15
 aks-agentpool-12345678-vmss000002   Ready    agent   4m    v1.23.15
-# Import nodes into kubectl-az
-$ kubectl az config import
-$ kubectl az config show
+# Import nodes into kubectl-aks
+$ kubectl aks config import
+$ kubectl aks config show
 nodes:
     aks-agentpool-12345678-vmss000000:
         instance-id: "0"
@@ -84,7 +84,7 @@ nodes:
         instance-id: "2"
         [...]
 # Start using one of those nodes
-$ kubectl az use-node aks-agentpool-12345678-vmss000000
+$ kubectl aks use-node aks-agentpool-12345678-vmss000000
 ```
 
 The information is stored with node name as key and VMSS instance information as value to avoid talking to be able
@@ -102,15 +102,15 @@ pass the node information to the commands. The precedence of the configuration i
 Using the flags:
 
 ```bash
-$ kubectl az check-apiserver-connectivity --node aks-agentpool-77471288-vmss000013
+$ kubectl aks check-apiserver-connectivity --node aks-agentpool-77471288-vmss000013
 ```
 
 or using the environment variables:
 
-- `KUBECTL_AZ_NODE`
-- `KUBECTL_AZ_RESOURCE_ID`
-- `KUBECTL_AZ_SUBSCRIPTION`, `KUBECTL_AZ_NODE_RESOURCE_GROUP`, `KUBECTL_AZ_VMSS` and `KUBECTL_AZ_INSTANCE_ID`
+- `KUBECTL_AKS_NODE`
+- `KUBECTL_AKS_RESOURCE_ID`
+- `KUBECTL_AKS_SUBSCRIPTION`, `KUBECTL_AKS_NODE_RESOURCE_GROUP`, `KUBECTL_AKS_VMSS` and `KUBECTL_AKS_INSTANCE_ID`
 
 ```bash
-$ KUBECTL_AZ_NODE=aks-agentpool-77471288-vmss000013 kubectl az check-apiserver-connectivity
+$ KUBECTL_AKS_NODE=aks-agentpool-77471288-vmss000013 kubectl aks check-apiserver-connectivity
 ```

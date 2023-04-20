@@ -38,7 +38,7 @@ func Dir() string {
 		fmt.Fprintf(os.Stderr, "Warn: getting home directory: %s\n", err)
 		fmt.Fprintf(os.Stderr, "Warn: using current directory for config\n")
 	}
-	return path.Join(dir, ".kubectl-az")
+	return path.Join(dir, ".kubectl-aks")
 }
 
 // ShowConfig prints the configuration to stdout

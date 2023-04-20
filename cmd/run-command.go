@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Azure/kubectl-az/cmd/utils"
+	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/spf13/cobra"
 )
 

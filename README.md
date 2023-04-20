@@ -1,6 +1,6 @@
-# Microsoft Azure CLI kubectl plugin
+# Microsoft Azure Kubernetes Service (AKS) CLI kubectl plugin
 
-`kubectl-az` is a `kubectl` plugin that provides a set of commands that can be
+`kubectl-aks` is a `kubectl` plugin that provides a set of commands that can be
 used to debug an AKS cluster even when the cluster's control plane is not
 working correctly. For instance, when the API server is having problems.
 
@@ -16,7 +16,7 @@ available command and which one is the most suitable for your case:
 - [check-apiserver-connectivity](docs/check-apiserver-connectivity.md)
 - [config](docs/config.md)
 
-Consider `kubectl-az` expects the cluster to use virtual machine scale sets,
+Consider `kubectl-aks` expects the cluster to use virtual machine scale sets,
 which is the case of an AKS cluster. And, the use of the `--node` flag requires
 the Kubernetes control plane to up and running, because the VMSS instance
 information of the node will be retrieved from the Kubernetes API server.
@@ -30,41 +30,41 @@ to the commands using the `--id` flag or separately with the `--subscription`,
 
 ## Install
 
-There is multiple ways to install the `kubectl-az`.
+There is multiple ways to install the `kubectl-aks`.
 
 ### Install a specific release
 
 It is possible to download the asset for a given release and platform from the
-[releases page](https://github.com/azure/kubectl-az/releases/), uncompress and
-move the `kubectl-az` executable to any folder in your `$PATH`.
+[releases page](https://github.com/azure/kubectl-aks/releases/), uncompress and
+move the `kubectl-aks` executable to any folder in your `$PATH`.
 
 ```bash
 VERSION=v0.1.0
-curl -sL https://github.com/azure/kubectl-az/releases/latest/download/kubectl-az-linux-amd64-${VERSION}.tar.gz | sudo tar -C /usr/local/bin -xzf - kubectl-az
-kubectl az version
+curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C /usr/local/bin -xzf - kubectl-aks
+kubectl aks version
 ```
 
 ### Compile from source
 
-To build `kubectl-az` from source, you'll need to have a Golang version 1.17
+To build `kubectl-aks` from source, you'll need to have a Golang version 1.17
 or higher installed:
 
 ```bash
-git clone https://github.com/Azure/kubectl-az.git
-cd kubectl-az
+git clone https://github.com/Azure/kubectl-aks.git
+cd kubectl-aks
 # Build and copy the resulting binary in $HOME/.local/bin/
 make install
-kubectl az version
+kubectl aks version
 ```
 
 ## Usage
 
 ```bash
-$ kubectl az --help
-Microsoft Azure CLI kubectl plugin
+$ kubectl aks --help
+Microsoft AKS CLI kubectl plugin
 
 Usage:
-  kubectl-az [command]
+  kubectl-aks [command]
 
 Available Commands:
   check-apiserver-connectivity Check connectivity between the nodes and the Kubernetes API Server
@@ -75,18 +75,18 @@ Available Commands:
   version                      Show version
 
 Flags:
-  -h, --help   help for kubectl-az
+  -h, --help   help for kubectl-aks
 
-Use "kubectl-az [command] --help" for more information about a command.
+Use "kubectl-aks [command] --help" for more information about a command.
 ```
 
-It is necessary to sign in to Azure to run any `kubectl-az` command. To do so,
+It is necessary to sign in to Azure to run any `kubectl-aks` command. To do so,
 you can use any authentication method provided by the [Azure
 CLI](https://github.com/Azure/azure-cli/) using the `az login` command; see
 further details
 [here](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli).
 However, if you do not have the Azure CLI or have not signed in yet,
-`kubectl-az` will open the default browser and load the Azure sign-in page where
+`kubectl-aks` will open the default browser and load the Azure sign-in page where
 you need to authenticate.
 
 ## Contributing

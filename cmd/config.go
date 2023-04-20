@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Azure/kubectl-az/cmd/utils"
-	"github.com/Azure/kubectl-az/cmd/utils/config"
+	"github.com/Azure/kubectl-aks/cmd/utils"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 )
 
 var configCmd = &cobra.Command{
