@@ -1,35 +1,37 @@
 apiVersion: krew.googlecontainertools.github.com/v1alpha2
 kind: Plugin
 metadata:
-  name: az
+  name: aks
 spec:
   version: {{ .TagName }}
-  homepage: https://github.com/Azure/kubectl-az
+  homepage: https://github.com/Azure/kubectl-aks
   shortDescription: Interact with an AKS cluster
   description: |
     This plugin provides a set of commands that can be used to debug an AKS
     cluster even when the cluster's control plane is not working correctly. For
     instance, when the API server is having problems.
 
-    This plugin is not meant to replace az, but to complement it by providing
+    This plugin is not meant to replace az [1], but to complement it by providing
     additional commands and, mainly, allowing users to have a kubectl-like
     experience when working with an AKS cluster.
+
+    [1] https://learn.microsoft.com/en-us/cli/azure/
   platforms:
   - selector:
       matchLabels:
         os: linux
         arch: amd64
-    {{addURIAndSha "https://github.com/Azure/kubectl-az/releases/download/{{ .TagName }}/kubectl-az-linux-amd64-{{ .TagName }}.tar.gz" .TagName }}
-    bin: kubectl-az
+    {{addURIAndSha "https://github.com/Azure/kubectl-aks/releases/download/{{ .TagName }}/kubectl-aks-linux-amd64-{{ .TagName }}.tar.gz" .TagName }}
+    bin: kubectl-aks
   - selector:
       matchLabels:
         os: darwin
         arch: amd64
-    {{addURIAndSha "https://github.com/Azure/kubectl-az/releases/download/{{ .TagName }}/kubectl-az-darwin-amd64-{{ .TagName }}.tar.gz" .TagName }}
-    bin: kubectl-az
+    {{addURIAndSha "https://github.com/Azure/kubectl-aks/releases/download/{{ .TagName }}/kubectl-aks-darwin-amd64-{{ .TagName }}.tar.gz" .TagName }}
+    bin: kubectl-aks
   - selector:
       matchLabels:
         os: windows
         arch: amd64
-    {{addURIAndSha "https://github.com/Azure/kubectl-az/releases/download/{{ .TagName }}/kubectl-az-windows-amd64-{{ .TagName }}.tar.gz" .TagName }}
-    bin: kubectl-az
+    {{addURIAndSha "https://github.com/Azure/kubectl-aks/releases/download/{{ .TagName }}/kubectl-aks-windows-amd64-{{ .TagName }}.tar.gz" .TagName }}
+    bin: kubectl-aks.exe

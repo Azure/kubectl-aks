@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/Azure/kubectl-az/cmd"
+import "github.com/Azure/kubectl-aks/cmd"
 
 func main() {
 	cmd.Execute()

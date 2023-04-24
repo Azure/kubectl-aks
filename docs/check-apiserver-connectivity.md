@@ -10,7 +10,7 @@ aks-agentpool-27170680-vmss000000   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000001   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000002   Ready    agent   11d   v1.22.4
 
-$ kubectl az check-apiserver-connectivity --node aks-agentpool-27170680-vmss000000
+$ kubectl aks check-apiserver-connectivity --node aks-agentpool-27170680-vmss000000
 Running...
 
 Connectivity check: succeeded
@@ -19,11 +19,11 @@ Connectivity check: succeeded
 Or we could also pass directly the VMSS instance information:
 
 ```bash
-$ kubectl az check-apiserver-connectivity --id "/subscriptions/$SUBSCRIPTION/resourceGroups/$NODERESOURCEGROUP/providers/Microsoft.Compute/virtualMachineScaleSets/$VMSS/virtualmachines/$INSTANCEID"
+$ kubectl aks check-apiserver-connectivity --id "/subscriptions/$SUBSCRIPTION/resourceGroups/$NODERESOURCEGROUP/providers/Microsoft.Compute/virtualMachineScaleSets/$VMSS/virtualmachines/$INSTANCEID"
 ```
 
 ```bash
-$ kubectl az check-apiserver-connectivity --subscription $SUBSCRIPTION --node-resource-group $NODERESOURCEGROUP --vmss $VMSS --instance-id $INSTANCEID
+$ kubectl aks check-apiserver-connectivity --subscription $SUBSCRIPTION --node-resource-group $NODERESOURCEGROUP --vmss $VMSS --instance-id $INSTANCEID
 ```
 
 The `check-apiserver-connectivity` command verifies the connectivity between the
@@ -38,7 +38,7 @@ We can use the flag `-v`/`--verbose` to have further details about the command
 that is being executed in the nodes to check connectivity:
 
 ```bash
-$ kubectl az check-apiserver-connectivity --node aks-agentpool-27170680-vmss000001 -v
+$ kubectl aks check-apiserver-connectivity --node aks-agentpool-27170680-vmss000001 -v
 Command: kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo $?
 Virtual Machine Scale Set VM:
 {

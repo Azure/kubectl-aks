@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/Azure/kubectl-az/cmd/utils/config"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 )
 
 const (
@@ -108,7 +108,7 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 			}
 			// bind environment variables
 			config.AutomaticEnv()
-			config.SetEnvPrefix("kubectl_az")
+			config.SetEnvPrefix("kubectl_aks")
 			config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 			// bind CLI flags

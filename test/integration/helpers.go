@@ -16,10 +16,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-func runKubectlAZ(t *testing.T, args ...string) string {
+func runKubectlAKS(t *testing.T, args ...string) string {
 	t.Helper()
 
-	cmd := exec.Command(os.Getenv("KUBECTL_AZ"), append(nodeFlag(t), args...)...)
+	cmd := exec.Command(os.Getenv("KUBECTL_AKS"), append(nodeFlag(t), args...)...)
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	cmd.Stdout = stdout

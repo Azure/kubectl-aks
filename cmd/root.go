@@ -6,7 +6,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/Azure/kubectl-az/cmd/utils"
+	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -14,8 +14,8 @@ import (
 var commonFlags utils.CommonFlags
 
 var rootCmd = &cobra.Command{
-	Use:   "kubectl-az",
-	Short: "Microsoft Azure CLI kubectl plugin",
+	Use:   "kubectl-aks",
+	Short: "Microsoft AKS CLI kubectl plugin",
 }
 
 func Execute() {

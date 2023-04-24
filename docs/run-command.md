@@ -9,7 +9,7 @@ aks-agentpool-27170680-vmss000000   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000001   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000002   Ready    agent   11d   v1.22.4
 
-$ kubectl az run-command "ip route" --node aks-agentpool-27170680-vmss000000
+$ kubectl aks run-command "ip route" --node aks-agentpool-27170680-vmss000000
 Running...
 
 [stdout]
@@ -30,7 +30,7 @@ default via 10.240.0.1 dev eth0 proto dhcp src 10.240.0.4 metric 100
 
 Another example when requested command prints information to the standard error:
 ```
-$ kubectl az run-command "cat non-existent-file" --node aks-agentpool-27170680-vmss000000
+$ kubectl aks run-command "cat non-existent-file" --node aks-agentpool-27170680-vmss000000
 Running...
 
 [stdout]
@@ -42,11 +42,11 @@ cat: non-existent-file: No such file or directory
 Or we could also pass directly the VMSS instance information:
 
 ```bash
-$ kubectl az run-command "ip route" --id "/subscriptions/$SUBSCRIPTION/resourceGroups/$NODERESOURCEGROUP/providers/Microsoft.Compute/virtualMachineScaleSets/$VMSS/virtualmachines/$INSTANCEID"
+$ kubectl aks run-command "ip route" --id "/subscriptions/$SUBSCRIPTION/resourceGroups/$NODERESOURCEGROUP/providers/Microsoft.Compute/virtualMachineScaleSets/$VMSS/virtualmachines/$INSTANCEID"
 ```
 
 ```bash
-$ kubectl az run-command "ip route" --subscription $SUBSCRIPTION --node-resource-group $NODERESOURCEGROUP --vmss $VMSS --instance-id $INSTANCEID
+$ kubectl aks run-command "ip route" --subscription $SUBSCRIPTION --node-resource-group $NODERESOURCEGROUP --vmss $VMSS --instance-id $INSTANCEID
 ```
 
 Take into account that all the

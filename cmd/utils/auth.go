@@ -20,7 +20,7 @@ import (
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
 
-	"github.com/Azure/kubectl-az/cmd/utils/config"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 )
 
 // https://github.com/Azure/azure-sdk-for-go/blob/sdk/azidentity/v0.13.0/sdk/azidentity/azidentity.go#L25
@@ -77,7 +77,7 @@ func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredentia
 
 // GetToken implements the azcore.TokenCredential interface on cachedInteractiveBrowserCredential.
 func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (*azcore.AccessToken, error) {
-	// TODO: may be this can be improved with https://github.com/Azure/kubectl-az/issues/11
+	// TODO: may be this can be improved with https://github.com/Azure/kubectl-aks/issues/11
 	var account public.Account
 	if len(c.client.Accounts()) > 0 {
 		account = c.client.Accounts()[len(c.client.Accounts())-1]

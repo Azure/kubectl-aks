@@ -12,28 +12,28 @@ else
 	VERSION := $(TAG)-dirty
 endif
 
-LDFLAGS := "-X github.com/Azure/kubectl-az/cmd.version=$(VERSION) -extldflags '-static'"
+LDFLAGS := "-X github.com/Azure/kubectl-aks/cmd.version=$(VERSION) -extldflags '-static'"
 
-.DEFAULT_GOAL := kubectl-az
+.DEFAULT_GOAL := kubectl-aks
 
 # Build
-KUBECTL_AZ_TARGETS = \
-	kubectl-az-linux-amd64 \
-	kubectl-az-linux-arm64 \
-	kubectl-az-darwin-amd64 \
-	kubectl-az-darwin-arm64 \
-	kubectl-az-windows-amd64
+KUBECTL_AKS_TARGETS = \
+	kubectl-aks-linux-amd64 \
+	kubectl-aks-linux-arm64 \
+	kubectl-aks-darwin-amd64 \
+	kubectl-aks-darwin-arm64 \
+	kubectl-aks-windows-amd64
 
-.PHONY: list-kubectl-az-targets
-list-kubectl-az-targets:
-	@echo $(KUBECTL_AZ_TARGETS)
+.PHONY: list-kubectl-aks-targets
+list-kubectl-aks-targets:
+	@echo $(KUBECTL_AKS_TARGETS)
 
-.PHONY: kubectl-az-all
-kubectl-az-all: $(KUBECTL_AZ_TARGETS)
+.PHONY: kubectl-aks-all
+kubectl-aks-all: $(KUBECTL_AKS_TARGETS)
 
-.PHONY: kubectl-az
-kubectl-az: kubectl-az-$(GOHOSTOS)-$(GOHOSTARCH)
-	mv kubectl-az-$(GOHOSTOS)-$(GOHOSTARCH) kubectl-az
+.PHONY: kubectl-aks
+kubectl-aks: kubectl-aks-$(GOHOSTOS)-$(GOHOSTARCH)
+	mv kubectl-aks-$(GOHOSTOS)-$(GOHOSTARCH) kubectl-aks
 
 # make does not allow implicit rules (with '%') to be phony so let's use
 # the 'phony_explicit' dependency to make implicit rules inherit the phony
@@ -41,19 +41,19 @@ kubectl-az: kubectl-az-$(GOHOSTOS)-$(GOHOSTARCH)
 .PHONY: phony_explicit
 phony_explicit:
 
-.PHONY: kubectl-az-%
-kubectl-az-%: phony_explicit
+.PHONY: kubectl-aks-%
+kubectl-aks-%: phony_explicit
 	export GO111MODULE=on CGO_ENABLED=0 && \
 	export GOOS=$(shell echo $* |cut -f1 -d-) GOARCH=$(shell echo $* |cut -f2 -d-) && \
 	go build -ldflags $(LDFLAGS) \
-		-o kubectl-az-$${GOOS}-$${GOARCH} \
-		github.com/Azure/kubectl-az
+		-o kubectl-aks-$${GOOS}-$${GOARCH} \
+		github.com/Azure/kubectl-aks
 
 # Install
 .PHONY: install
-install: kubectl-az
+install: kubectl-aks
 	mkdir -p ~/.local/bin/
-	cp kubectl-az ~/.local/bin/
+	cp kubectl-aks ~/.local/bin/
 
 # Run unit tests
 .PHONY: unit-test
@@ -62,15 +62,15 @@ unit-test:
 
 # Run integration tests
 .PHONY: integration-test
-integration-test: kubectl-az
-	KUBECTL_AZ="$(shell pwd)/kubectl-az" \
+integration-test: kubectl-aks
+	KUBECTL_AKS="$(shell pwd)/kubectl-aks" \
 		go test -v ./test/integration/... -integration
 
 # Clean
 .PHONY: clean
 clean:
-	rm -f kubectl-az
+	rm -f kubectl-aks
 
 .PHONY: cleanall
 cleanall: clean
-	rm -f $(KUBECTL_AZ_TARGETS)
+	rm -f $(KUBECTL_AKS_TARGETS)

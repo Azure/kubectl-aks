@@ -23,8 +23,8 @@ func TestMain(m *testing.M) {
 		os.Exit(0)
 	}
 
-	if os.Getenv("KUBECTL_AZ") == "" {
-		fmt.Fprintf(os.Stderr, "KUBECTL_AZ environment variable must be set to the path of the kubectl-az binary\n")
+	if os.Getenv("KUBECTL_AKS") == "" {
+		fmt.Fprintf(os.Stderr, "KUBECTL_AKS environment variable must be set to the path of the kubectl-aks binary\n")
 		os.Exit(1)
 	}
 
@@ -33,19 +33,19 @@ func TestMain(m *testing.M) {
 }
 
 func TestCheckAPIServerConnectivity(t *testing.T) {
-	out := runKubectlAZ(t, "check-apiserver-connectivity")
+	out := runKubectlAKS(t, "check-apiserver-connectivity")
 	require.Contains(t, out, "Connectivity check: succeeded")
 }
 
 func TestRunCommand(t *testing.T) {
 	// test stdout
-	out := runKubectlAZ(t, "run-command", "echo test")
+	out := runKubectlAKS(t, "run-command", "echo test")
 	stdout, stderr := parseRunCommand(t, out)
 	require.Equal(t, stdout, "test", "parseRunCommand() = %v, want %v", stdout, "test")
 	require.Empty(t, stderr, "parseRunCommand() = %v, want %v", stderr, "")
 
 	// test stderr
-	out = runKubectlAZ(t, "run-command", "echo test >&2")
+	out = runKubectlAKS(t, "run-command", "echo test >&2")
 	stdout, stderr = parseRunCommand(t, out)
 	require.Empty(t, stdout, "parseRunCommand() = %v, want %v", stdout, "")
 	require.Equal(t, stderr, "test", "parseRunCommand() = %v, want %v", stderr, "test")
