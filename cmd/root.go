@@ -15,7 +15,7 @@ var commonFlags utils.CommonFlags
 
 var rootCmd = &cobra.Command{
 	Use:   "kubectl-aks",
-	Short: "Microsoft AKS CLI kubectl plugin",
+	Short: "Azure Kubernetes Service (AKS) kubectl plugin",
 }
 
 func Execute() {

@@ -1,4 +1,4 @@
-# Microsoft Azure Kubernetes Service (AKS) CLI kubectl plugin
+# Azure Kubernetes Service (AKS) kubectl plugin
 
 `kubectl-aks` is a `kubectl` plugin that provides a set of commands that can be
 used to debug an AKS cluster even when the cluster's control plane is not
@@ -61,7 +61,7 @@ kubectl aks version
 
 ```bash
 $ kubectl aks --help
-Microsoft AKS CLI kubectl plugin
+Azure Kubernetes Service (AKS) kubectl plugin
 
 Usage:
   kubectl-aks [command]
