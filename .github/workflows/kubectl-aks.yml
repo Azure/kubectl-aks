@@ -1,4 +1,4 @@
-name: Microsoft AKS CLI kubectl plugin CI
+name: Azure Kubernetes Service kubectl plugin CI
 env:
   GO_VERSION: 1.17 # TODO: Update
   AZURE_PREFIX: kubectl-aks-ci
