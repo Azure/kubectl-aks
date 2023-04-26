@@ -1,13 +1,18 @@
 # Azure Kubernetes Service (AKS) kubectl plugin
 
-`kubectl-aks` is a `kubectl` plugin that provides a set of commands that can be
-used to debug an AKS cluster even when the cluster's control plane is not
-working correctly. For instance, when the API server is having problems.
+`kubectl-aks` is a `kubectl` plugin that provides a set of commands that enable
+users to interact with an AKS cluster even when the control plane is not
+functioning as expected. For example, users can still use the plugin to debug
+their cluster if the API server is not working correctly. This plugin allows
+users to perform various tasks, retrieve information, and execute commands
+against the cluster nodes, regardless of the control plane's state.
 
-This plugin is not meant to replace
-[az](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest), but
-to complement it by providing additional commands and, mainly, allowing users to
-have a kubectl-like experience when working with an AKS cluster.
+It's important to note that this plugin does not replace the Azure CLI,
+[az](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest).
+Instead, it complements it by offering additional commands and providing users
+with a kubectl-like experience. In practice, users will use az to create and
+delete their AKS cluster, and then use kubectl and kubectl-aks to interact with
+and debug it.
 
 Going through the following documentation will help you to understand each
 available command and which one is the most suitable for your case:
