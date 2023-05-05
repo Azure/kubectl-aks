@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var command string
+var (
+	command string
+	timeout int
+)
 
 var runCommandCmd = &cobra.Command{
 	Use:          "run-command",
@@ -28,6 +31,7 @@ var runCommandCmd = &cobra.Command{
 }
 
 func init() {
+	runCommandCmd.Flags().IntVar(&timeout, "timeout", utils.DefaultRunCommandTimeoutInSeconds, "timeout in seconds for the command to complete")
 	utils.AddNodeFlags(runCommandCmd)
 	utils.AddCommonFlags(runCommandCmd, &commonFlags)
 	rootCmd.AddCommand(runCommandCmd)
@@ -44,7 +48,7 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("getting vm: %w", err)
 	}
 
-	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose)
+	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose, &timeout)
 	if err != nil {
 		return fmt.Errorf("failed to run command: %w", err)
 	}

@@ -18,6 +18,8 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const DefaultRunCommandTimeoutInSeconds = 300
+
 type VirtualMachineScaleSetVM struct {
 	SubscriptionID    string
 	NodeResourceGroup string
@@ -113,6 +115,7 @@ func RunCommand(
 	vm *VirtualMachineScaleSetVM,
 	command *string,
 	verbose bool,
+	timeout *int,
 ) (
 	string,
 	error,
@@ -123,9 +126,13 @@ func RunCommand(
 		pollingFreq  = 2 * time.Second
 	)
 
+	if timeout == nil {
+		timeout = to.IntPtr(DefaultRunCommandTimeoutInSeconds)
+	}
+
 	client := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, nil)
 
-	script := []*string{command}
+	script := []*string{to.StringPtr(fmt.Sprintf("timeout %d sh -c '%s'", *timeout, *command))}
 	runCommand := armcompute.RunCommandInput{
 		CommandID: to.StringPtr(commandID),
 		Script:    script,
