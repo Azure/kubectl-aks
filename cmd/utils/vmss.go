@@ -18,7 +18,15 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const DefaultRunCommandTimeoutInSeconds = 300
+type OutputTruncate int
+
+const (
+	OutputTruncateHead OutputTruncate = iota
+	OutputTruncateTail
+
+	BytesLimit                        = 4096
+	DefaultRunCommandTimeoutInSeconds = 300
+)
 
 type VirtualMachineScaleSetVM struct {
 	SubscriptionID    string
@@ -93,7 +101,7 @@ func VirtualMachineScaleSetVMsViaKubeconfig() (map[string]*VirtualMachineScaleSe
 		return nil, fmt.Errorf("listing nodes: %w", err)
 	}
 
-	var vmssVMs = make(map[string]*VirtualMachineScaleSetVM)
+	vmssVMs := make(map[string]*VirtualMachineScaleSetVM)
 	if len(nodes.Items) > 0 {
 		for _, n := range nodes.Items {
 			var vm VirtualMachineScaleSetVM
@@ -116,6 +124,7 @@ func RunCommand(
 	command *string,
 	verbose bool,
 	timeout *int,
+	outputTruncate OutputTruncate,
 ) (
 	string,
 	error,
@@ -131,6 +140,12 @@ func RunCommand(
 	}
 
 	client := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, nil)
+
+	// By default, the Azure API limits the output to the last 4,096 bytes. See
+	// https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command#restrictions.
+	if outputTruncate == OutputTruncateTail {
+		*command = fmt.Sprintf("%s | head -c %d", *command, BytesLimit)
+	}
 
 	script := []*string{to.StringPtr(fmt.Sprintf("timeout %d sh -c '%s'", *timeout, *command))}
 	runCommand := armcompute.RunCommandInput{
