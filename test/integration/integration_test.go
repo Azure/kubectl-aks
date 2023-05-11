@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +38,7 @@ func TestCheckAPIServerConnectivity(t *testing.T) {
 	require.Contains(t, out, "Connectivity check: succeeded")
 }
 
-func TestRunCommand(t *testing.T) {
+func TestRunCommandOutput(t *testing.T) {
 	// test stdout
 	out := runKubectlAKS(t, "run-command", "echo test")
 	stdout, stderr := parseRunCommand(t, out)
@@ -49,6 +50,19 @@ func TestRunCommand(t *testing.T) {
 	stdout, stderr = parseRunCommand(t, out)
 	require.Empty(t, stdout, "parseRunCommand() = %v, want %v", stdout, "")
 	require.Equal(t, stderr, "test", "parseRunCommand() = %v, want %v", stderr, "test")
+}
+
+func TestRunCommandTimeout(t *testing.T) {
+	ch := make(chan struct{})
+	go func() {
+		runKubectlAKS(t, "run-command", "sleep inf", "--timeout", "2")
+		ch <- struct{}{}
+	}()
+	select {
+	case <-ch:
+	case <-time.After(60 * time.Second):
+		t.Fatal("timed out waiting for command to finish")
+	}
 }
 
 func parseRunCommand(t *testing.T, out string) (string, string) {
