@@ -123,13 +123,13 @@ func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 func importCmdRun(cmd *cobra.Command, args []string) error {
 	vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
 	if err != nil {
-		return fmt.Errorf("failed to get VMSS VMs: %v", err)
+		return fmt.Errorf("failed to get VMSS VMs: %w", err)
 	}
 
 	cfg := config.New()
 	for nn, vm := range vms {
 		if err = cfg.SetNodeConfigWithVMSSInfoFlag(nn, vm.SubscriptionID, vm.NodeResourceGroup, vm.VMScaleSet, vm.InstanceID); err != nil {
-			return fmt.Errorf("failed to set node config for %s: %v", nn, err)
+			return fmt.Errorf("failed to set node config for %s: %w", nn, err)
 		}
 	}
 	return nil

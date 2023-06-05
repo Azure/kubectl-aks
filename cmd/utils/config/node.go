@@ -78,8 +78,9 @@ func (c *config) SetNodeConfigWithVMSSInfoFlag(nodeName, subscriptionIDFlag, nod
 }
 
 func (c *config) setNodeConfig(nodeName, nodeFlag, resourceIDFlag, subscriptionIDFlag,
-	nodeResourceGroupFlag, vmssFlag, instanceIDFlag string) error {
-	if err := os.MkdirAll(Dir(), 0700); err != nil {
+	nodeResourceGroupFlag, vmssFlag, instanceIDFlag string,
+) error {
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
