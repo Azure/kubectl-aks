@@ -110,7 +110,7 @@ jobs:
 
   create-aks-cluster:
     name: Create AKS cluster
-    needs: [ build, unit-tests ]
+    needs: [ build, lint, unit-tests ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
