@@ -47,6 +47,7 @@ func AddCommonFlags(command *cobra.Command, flags *CommonFlags) {
 	)
 }
 
+// AddNodeFlags adds node flags and binds them to config/environment variables
 // Every command that allows user to specify the node name has three options:
 // (1) Provide the kubernetes node name
 // (2) Provide the VMMS instance information (--subscription, --node-resource-group, --vmss and --instance-id)

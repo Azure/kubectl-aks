@@ -29,6 +29,8 @@ const (
 	developerSignOnClientID = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 )
 
+// GetCredentials returns a credential chain that will try to authenticate
+// using the Azure CLI and then using the interactive browser.
 // Further details about authentication:
 // https://github.com/Azure/azure-sdk-for-go/tree/main/sdk/azidentity
 func GetCredentials() (*azidentity.ChainedTokenCredential, error) {
@@ -60,7 +62,7 @@ type cachedInteractiveBrowserCredential struct {
 
 func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredential, error) {
 	file := path.Join(config.Dir(), "token-cache.json")
-	if err := os.MkdirAll(path.Dir(file), 0700); err != nil {
+	if err := os.MkdirAll(path.Dir(file), 0o700); err != nil {
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}
 
@@ -117,7 +119,7 @@ func (t *tokenCache) Export(cache cache.Marshaler, key string) {
 	if err = json.Indent(&indentedData, data, "", "  "); err == nil {
 		data = indentedData.Bytes()
 	}
-	err = os.WriteFile(t.file, data, 0600)
+	err = os.WriteFile(t.file, data, 0o600)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warn: writing token cache: %s\n", err)
 	}

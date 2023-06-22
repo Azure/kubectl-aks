@@ -12,6 +12,8 @@ else
 	VERSION := $(TAG)-dirty
 endif
 
+LINTER_VERSION ?= v1.53.2
+
 LDFLAGS := "-X github.com/Azure/kubectl-aks/cmd.version=$(VERSION) -extldflags '-static'"
 
 .DEFAULT_GOAL := kubectl-aks
@@ -48,6 +50,14 @@ kubectl-aks-%: phony_explicit
 	go build -ldflags $(LDFLAGS) \
 		-o kubectl-aks-$${GOOS}-$${GOARCH} \
 		github.com/Azure/kubectl-aks
+
+# Lint
+.PHONY: lint
+lint:
+	docker run --rm --env XDG_CACHE_HOME=/tmp/xdg_home_cache \
+		--env GOLANGCI_LINT_CACHE=/tmp/golangci_lint_cache \
+		--user $(shell id -u):$(shell id -g) -v $(shell pwd):/app -w /app \
+		golangci/golangci-lint:$(LINTER_VERSION) golangci-lint run
 
 # Install
 .PHONY: install

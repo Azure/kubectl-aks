@@ -131,7 +131,7 @@ func createAndReadTempConfig(t *testing.T) *config {
 	require.Nil(t, err, "os.ReadFile(cfgPath) err = %v, want nil", err)
 	require.NotNil(t, data, "os.ReadFile(cfgPath) data = %v, want not nil", data)
 
-	err = os.WriteFile(cfgPath, data, 0600)
+	err = os.WriteFile(cfgPath, data, 0o600)
 	require.Nil(t, err, "os.WriteFile(cfgPath) = %v, want nil", err)
 
 	err = cfg.ReadInConfig()
