@@ -216,6 +216,8 @@ jobs:
       - name: Run integration tests
         shell: bash
         run: |
+          export AZURE_RESOURCE_GROUP=${{ env.AZURE_PREFIX }}-rg
+          export AZURE_CLUSTER_NAME=${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
           make integration-test -o kubectl-aks
 
   release:

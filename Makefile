@@ -4,6 +4,10 @@ GOHOSTARCH ?= $(shell go env GOHOSTARCH)
 TAG := `git describe --tags --always`
 VERSION :=
 
+AZURE_SUBSCRIPTION_ID ?= $(shell az account show --query id -o tsv)
+AZURE_RESOURCE_GROUP ?=
+AZURE_CLUSTER_NAME ?=
+
 # Adds a '-dirty' suffix to version string if there are uncommitted changes
 changes := $(shell git status --porcelain)
 ifeq ($(changes),)
@@ -74,6 +78,9 @@ unit-test:
 .PHONY: integration-test
 integration-test: kubectl-aks
 	KUBECTL_AKS="$(shell pwd)/kubectl-aks" \
+	AZURE_SUBSCRIPTION_ID=$(AZURE_SUBSCRIPTION_ID) \
+	AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP) \
+	AZURE_CLUSTER_NAME=$(AZURE_CLUSTER_NAME) \
 		go test -v ./test/integration/... -integration
 
 # Clean
