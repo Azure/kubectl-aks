@@ -146,6 +146,8 @@ func importCmdCommand() *cobra.Command {
 			"In case of Azure API, you need to provide '--subscription-id', '--resource-group' and '--cluster-name' flags.",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			utils.DefaultSpinner.Start()
+			defer utils.DefaultSpinner.Stop()
 			vms, err := virtualMachineScaleSetVMs()
 			if err != nil {
 				return err
