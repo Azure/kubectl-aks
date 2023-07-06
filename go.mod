@@ -6,9 +6,11 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.21.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v0.13.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v0.3.0
+	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice v0.3.0
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.4.0
 	github.com/kinvolk/inspektor-gadget v0.4.2
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.2
