@@ -106,9 +106,23 @@ However, if you do not have the Azure CLI or have not signed in yet,
 `kubectl-aks` will open the default browser and load the Azure sign-in page where
 you need to authenticate.
 
+### Permissions
+
+In order to run `kubectl-aks` commands, the user/service principal must have the permissions to perform the
+following [operations](https://learn.microsoft.com/en-us/azure/role-based-access-control/resource-provider-operations):
+
+- Run command on the instances: `Microsoft.Compute/virtualMachineScaleSets/virtualmachines/runCommand/action`
+- List Virtual Machine Scale Sets (VMSS): `Microsoft.Compute/virtualMachineScaleSets/virtualMachines/read`
+- List Virtual Machine Scale Set Instances (VMSS Instances): `Microsoft.Compute/virtualMachineScaleSets/read`
+
+Normally if you are using [built-in](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles)
+roles e.g Contributor, you should have the above permissions. However, if you are
+using [custom roles](https://learn.microsoft.com/en-us/azure/role-based-access-control/custom-roles-portal) for a
+service principal, you need to make sure that the permissions are granted.
+
 ## Contributing
 
-This project welcomes contributions and suggestions.  Most contributions require
+This project welcomes contributions and suggestions. Most contributions require
 you to agree to a Contributor License Agreement (CLA) declaring that you have
 the right to, and actually do, grant us the rights to use your contribution. For
 details, visit https://cla.opensource.microsoft.com.
