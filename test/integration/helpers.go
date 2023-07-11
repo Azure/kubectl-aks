@@ -19,7 +19,17 @@ import (
 func runKubectlAKS(t *testing.T, args ...string) string {
 	t.Helper()
 
-	cmd := exec.Command(os.Getenv("KUBECTL_AKS"), append(nodeFlag(t), args...)...)
+	args = append(nodeFlag(t), args...)
+	stdout, stderr := runCommand(t, os.Getenv("KUBECTL_AKS"), args...)
+	require.Empty(t, stderr, "stderr = %v, want empty", stderr)
+
+	return stdout
+}
+
+func runCommand(t *testing.T, name string, args ...string) (string, string) {
+	t.Helper()
+
+	cmd := exec.Command(name, args...)
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	cmd.Stdout = stdout
@@ -27,11 +37,10 @@ func runKubectlAKS(t *testing.T, args ...string) string {
 
 	t.Logf("Running command: %s", cmd.String())
 	err := cmd.Run()
-	require.Empty(t, stderr.String(), "stderr.String() = %v, want empty", stderr.String())
 	require.Nil(t, err, "cmd.Run() = %v, want nil", err)
 	t.Logf("Command output: \n%s", stdout.String())
 
-	return stdout.String()
+	return stdout.String(), stderr.String()
 }
 
 func nodeFlag(t *testing.T) []string {

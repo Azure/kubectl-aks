@@ -8,11 +8,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -115,6 +117,70 @@ func VirtualMachineScaleSetVMsViaKubeconfig() (map[string]*VirtualMachineScaleSe
 		}
 	}
 	return vmssVMs, nil
+}
+
+func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[string]*VirtualMachineScaleSetVM, error) {
+	creds, err := GetCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("getting credentials: %w", err)
+	}
+
+	ctx := context.Background()
+	aksClient := armcontainerservice.NewManagedClustersClient(subID, creds, nil)
+	cluster, err := aksClient.Get(ctx, rg, clusterName, nil)
+	if err != nil {
+		return nil, fmt.Errorf("getting cluster: %w", err)
+	}
+	var nodePools []string
+	vmssClient := armcompute.NewVirtualMachineScaleSetsClient(subID, creds, nil)
+	nodePoolPager := vmssClient.List(to.String(cluster.Properties.NodeResourceGroup), nil)
+	for nodePoolPager.NextPage(ctx) {
+		for _, np := range nodePoolPager.PageResponse().Value {
+			nodePools = append(nodePools, to.String(np.Name))
+		}
+	}
+	if err = nodePoolPager.Err(); err != nil {
+		return nil, fmt.Errorf("getting node pools: %w", err)
+	}
+	vmssVMs := make(map[string]*VirtualMachineScaleSetVM)
+	vmClient := armcompute.NewVirtualMachineScaleSetVMsClient(subID, creds, nil)
+	for _, np := range nodePools {
+		instances, err := instancesForNodePool(vmClient, np, to.String(cluster.Properties.NodeResourceGroup))
+		if err != nil {
+			return nil, fmt.Errorf("getting instances for node pool %q: %w", np, err)
+		}
+		for _, instance := range instances {
+			vmssVMs[instanceName(np, to.String(instance.InstanceID))] = &VirtualMachineScaleSetVM{
+				SubscriptionID:    subID,
+				VMScaleSet:        np,
+				NodeResourceGroup: strings.ToLower(to.String(cluster.Properties.NodeResourceGroup)),
+				InstanceID:        to.String(instance.InstanceID),
+			}
+		}
+	}
+
+	return vmssVMs, nil
+}
+
+func instancesForNodePool(vmClient *armcompute.VirtualMachineScaleSetVMsClient, pool, resourceGroup string) ([]*armcompute.VirtualMachineScaleSetVM, error) {
+	var instances []*armcompute.VirtualMachineScaleSetVM
+	pager := vmClient.List(resourceGroup, pool, nil)
+	for pager.NextPage(context.Background()) {
+		instances = append(instances, pager.PageResponse().Value...)
+	}
+	if err := pager.Err(); err != nil {
+		return nil, err
+	}
+	return instances, nil
+}
+
+// instanceName returns the instance name of the VMSS VM formatted as Kubernetes node name.
+func instanceName(vmss string, instanceID string) string {
+	id, err := strconv.Atoi(instanceID)
+	if err != nil {
+		return fmt.Sprintf("%s_%s", vmss, instanceID)
+	}
+	return fmt.Sprintf("%s%06x", vmss, id)
 }
 
 func RunCommand(

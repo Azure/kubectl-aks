@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
@@ -60,12 +61,7 @@ var setNodeCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
-var importCmd = &cobra.Command{
-	Use:          "import",
-	Short:        "Import Kubernetes nodes in the configuration",
-	RunE:         importCmdRun,
-	SilenceUsage: true,
-}
+var importCmd = importCmdCommand()
 
 func init() {
 	utils.AddCommonFlags(configCmd, &commonFlags)
@@ -120,17 +116,55 @@ func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 	}
 }
 
-func importCmdRun(cmd *cobra.Command, args []string) error {
-	vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
-	if err != nil {
-		return fmt.Errorf("failed to get VMSS VMs: %w", err)
+func importCmdCommand() *cobra.Command {
+	var subscriptionID string
+	var resourceGroup string
+	var clusterName string
+
+	virtualMachineScaleSetVMs := func() (map[string]*utils.VirtualMachineScaleSetVM, error) {
+		if subscriptionID != "" && resourceGroup != "" && clusterName != "" {
+			vms, err := utils.VirtualMachineScaleSetVMsViaAzureAPI(subscriptionID, resourceGroup, clusterName)
+			if err != nil {
+				return nil, fmt.Errorf("getting VMSS VMs via Azure API: %w", err)
+			}
+			return vms, nil
+		}
+		vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
+		if err != nil {
+			logrus.Warn("Could not get VMSS VMs via Kubernetes API")
+			logrus.Warn("Please provide '--subscription-id', '--resource-group' and '--cluster-name' flags to get VMSS VMs via Azure API")
+			return nil, fmt.Errorf("getting VMSS VMs via Kuberntes API: %w", err)
+		}
+		return vms, nil
 	}
 
-	cfg := config.New()
-	for nn, vm := range vms {
-		if err = cfg.SetNodeConfigWithVMSSInfoFlag(nn, vm.SubscriptionID, vm.NodeResourceGroup, vm.VMScaleSet, vm.InstanceID); err != nil {
-			return fmt.Errorf("failed to set node config for %s: %w", nn, err)
-		}
+	cmd := &cobra.Command{
+		Use:   "import",
+		Short: "Import Kubernetes nodes in the configuration",
+		Long: "Import Kubernetes nodes in the configuration" + "\n\n" +
+			"It uses kubeconfig by default, but it can also use Azure API to get VMSS VMs." + "\n" +
+			"In case of Azure API, you need to provide '--subscription-id', '--resource-group' and '--cluster-name' flags.",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			utils.DefaultSpinner.Start()
+			defer utils.DefaultSpinner.Stop()
+			vms, err := virtualMachineScaleSetVMs()
+			if err != nil {
+				return err
+			}
+			cfg := config.New()
+			for nn, vm := range vms {
+				if err = cfg.SetNodeConfigWithVMSSInfoFlag(nn, vm.SubscriptionID, vm.NodeResourceGroup, vm.VMScaleSet, vm.InstanceID); err != nil {
+					return fmt.Errorf("setting node config for %s: %w", nn, err)
+				}
+			}
+			return nil
+		},
 	}
-	return nil
+
+	cmd.Flags().StringVarP(&subscriptionID, "subscription-id", "s", "", "Subscription ID of the cluster (only needed with Azure API)")
+	cmd.Flags().StringVarP(&resourceGroup, "resource-group", "g", "", "Resource group of the cluster (only needed with Azure API)")
+	cmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "Name of the cluster (only needed with Azure API)")
+
+	return cmd
 }

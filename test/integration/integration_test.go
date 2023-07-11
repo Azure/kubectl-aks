@@ -7,11 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,4 +73,31 @@ func parseRunCommand(t *testing.T, out string) (string, string) {
 	stdOutput := strings.TrimSpace(split[1])
 	stdError := strings.TrimSpace(split[2])
 	return stdOutput, stdError
+}
+
+func TestConfigImport(t *testing.T) {
+	subcriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	resourceGroup := os.Getenv("AZURE_RESOURCE_GROUP")
+	clusterName := os.Getenv("AZURE_CLUSTER_NAME")
+	if subcriptionID == "" || resourceGroup == "" || clusterName == "" {
+		t.Fatal("AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, and AZURE_CLUSTER_NAME environment variables must be set to run this test")
+	}
+
+	configPath := filepath.Join(config.Dir(), "config.yaml")
+	defer os.Remove(configPath)
+
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import")
+	k8sConfigFile, err := os.ReadFile(configPath)
+	require.Nil(t, err, "reading config file: %v", err)
+	require.NotEmpty(t, k8sConfigFile, "config file is empty")
+
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "unset-all")
+	_, err = os.ReadFile(configPath)
+	require.NotNil(t, err, "reading config file: %v", err)
+
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import", "-s", subcriptionID, "-g", resourceGroup, "-c", clusterName)
+	azureConfigFile, err := os.ReadFile(configPath)
+	require.Nil(t, err, "reading config file: %v", err)
+	require.NotEmpty(t, azureConfigFile, "config file is empty")
+	require.Equal(t, k8sConfigFile, azureConfigFile, "config file is not the same")
 }
