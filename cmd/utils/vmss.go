@@ -230,8 +230,6 @@ func RunCommand(
 		return "", fmt.Errorf("couldn't begin running command: %w", err)
 	}
 
-	fmt.Println("Running...")
-
 	res, err := poller.PollUntilDone(ctx, pollingFreq)
 	if err != nil {
 		return "", fmt.Errorf("error polling command response: %w", err)

@@ -76,10 +76,10 @@ func parseRunCommand(t *testing.T, out string) (string, string) {
 }
 
 func TestConfigImport(t *testing.T) {
-	subcriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
+	subscriptionID := os.Getenv("AZURE_SUBSCRIPTION_ID")
 	resourceGroup := os.Getenv("AZURE_RESOURCE_GROUP")
 	clusterName := os.Getenv("AZURE_CLUSTER_NAME")
-	if subcriptionID == "" || resourceGroup == "" || clusterName == "" {
+	if subscriptionID == "" || resourceGroup == "" || clusterName == "" {
 		t.Fatal("AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, and AZURE_CLUSTER_NAME environment variables must be set to run this test")
 	}
 
@@ -95,7 +95,7 @@ func TestConfigImport(t *testing.T) {
 	_, err = os.ReadFile(configPath)
 	require.NotNil(t, err, "reading config file: %v", err)
 
-	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import", "-s", subcriptionID, "-g", resourceGroup, "-c", clusterName)
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import", "-s", subscriptionID, "-g", resourceGroup, "-c", clusterName)
 	azureConfigFile, err := os.ReadFile(configPath)
 	require.Nil(t, err, "reading config file: %v", err)
 	require.NotEmpty(t, azureConfigFile, "config file is empty")

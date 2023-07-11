@@ -28,6 +28,7 @@ func init() {
 }
 
 func connCheckCmdRun(cmd *cobra.Command, args []string) error {
+	utils.DefaultSpinner.Start()
 	cred, err := utils.GetCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
@@ -71,7 +72,8 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 		os.Exit(ret)
 	}
 
-	fmt.Println("\nConnectivity check: succeeded")
+	utils.DefaultSpinner.Stop()
+	fmt.Println("Connectivity check: succeeded")
 
 	return nil
 }
