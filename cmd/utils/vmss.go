@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -38,6 +39,11 @@ type VirtualMachineScaleSetVM struct {
 	NodeResourceGroup string
 	VMScaleSet        string
 	InstanceID        string
+}
+
+type RunCommandResult struct {
+	Stdout string
+	Stderr string
 }
 
 // ParseVMSSResourceID extracts elements from a given VMSS resource ID with format:
@@ -194,7 +200,7 @@ func RunCommand(
 	timeout *int,
 	outputTruncate OutputTruncate,
 ) (
-	string,
+	*RunCommandResult,
 	error,
 ) {
 	const (
@@ -240,12 +246,12 @@ func RunCommand(
 	poller, err := client.BeginRunCommand(ctx, vm.NodeResourceGroup,
 		vm.VMScaleSet, vm.InstanceID, runCommand, nil)
 	if err != nil {
-		return "", fmt.Errorf("couldn't begin running command: %w", err)
+		return nil, fmt.Errorf("begin running command: %w", err)
 	}
 
 	res, err := poller.PollUntilDone(ctx, pollingFreq)
 	if err != nil {
-		return "", fmt.Errorf("error polling command response: %w", err)
+		return nil, fmt.Errorf("polling command response: %w", err)
 	}
 
 	if verbose {
@@ -255,16 +261,43 @@ func RunCommand(
 
 	// TODO: Is it possible to have multiple values after using PollUntilDone()?
 	if len(res.Value) == 0 || res.Value[0] == nil {
-		return "", errors.New("no response received after command execution")
+		return nil, errors.New("no response received after command execution")
 	}
 	val := res.Value[0]
 
 	// TODO: Isn't there a constant in the SDK to compare this?
 	if to.String(val.Code) != "ProvisioningState/succeeded" {
 		b, _ := json.MarshalIndent(res, "", "  ")
-		return "", fmt.Errorf("command execution didn't succeed:\n%s", string(b))
+		return nil, fmt.Errorf("command execution didn't succeed:\n%s", string(b))
 	}
 
-	// Expected format: "Enable succeeded: \n<text>"
-	return strings.TrimPrefix(to.String(val.Message), "Enable succeeded: \n"), nil
+	result, err := parseRunCommandMessage(to.String(val.Message))
+	if err != nil {
+		return nil, err
+	}
+	if outputTruncate == OutputTruncateTail && result.isTruncated() {
+		result.Stdout = fmt.Sprintf("%s... (truncated)\n", result.Stdout)
+	}
+
+	return result, nil
+}
+
+func parseRunCommandMessage(msg string) (*RunCommandResult, error) {
+	// Expected format: "Enable succeeded: <text>"
+	res := strings.TrimPrefix(msg, "Enable succeeded: ")
+
+	// Extract stdout and stderr from response.
+	// Expected format: "\n[stdout]\n<text>\n[stderr]\n<text>"
+	split := regexp.MustCompile(`\n\[(stdout|stderr)\]\n`).Split(res, -1)
+	if len(split) != 3 {
+		return nil, fmt.Errorf("couldn't parse response message:\n%s", res)
+	}
+	return &RunCommandResult{
+		Stdout: split[1],
+		Stderr: split[2],
+	}, nil
+}
+
+func (r *RunCommandResult) isTruncated() bool {
+	return len(r.Stdout)+len(r.Stderr) >= BytesLimit
 }
