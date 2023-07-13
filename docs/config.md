@@ -87,6 +87,13 @@ nodes:
 $ kubectl aks use-node aks-agentpool-12345678-vmss000000
 ```
 
+Or in case Kubernetes API is not available, we can also import the node information using Azure API by specifying the cluster information:
+
+```bash
+$ kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name myCluster
+$ kubectl aks config show
+```
+
 The information is stored with node name as key and VMSS instance information as value to avoid talking to be able
 to continue talking with the node, even if the API server is not working correctly.
 
