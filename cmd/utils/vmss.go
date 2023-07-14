@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -150,7 +149,7 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 			return nil, fmt.Errorf("getting instances for node pool %q: %w", np, err)
 		}
 		for _, instance := range instances {
-			vmssVMs[instanceName(np, to.String(instance.InstanceID))] = &VirtualMachineScaleSetVM{
+			vmssVMs[instanceName(instance)] = &VirtualMachineScaleSetVM{
 				SubscriptionID:    subID,
 				VMScaleSet:        np,
 				NodeResourceGroup: strings.ToLower(to.String(cluster.Properties.NodeResourceGroup)),
@@ -175,12 +174,11 @@ func instancesForNodePool(vmClient *armcompute.VirtualMachineScaleSetVMsClient, 
 }
 
 // instanceName returns the instance name of the VMSS VM formatted as Kubernetes node name.
-func instanceName(vmss string, instanceID string) string {
-	id, err := strconv.Atoi(instanceID)
-	if err != nil {
-		return fmt.Sprintf("%s_%s", vmss, instanceID)
+func instanceName(vm *armcompute.VirtualMachineScaleSetVM) string {
+	if vm.Properties.OSProfile == nil || vm.Properties.OSProfile.ComputerName == nil {
+		return to.String(vm.Name)
 	}
-	return fmt.Sprintf("%s%06x", vmss, id)
+	return strings.ToLower(to.String(vm.Properties.OSProfile.ComputerName))
 }
 
 func RunCommand(
