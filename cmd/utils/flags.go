@@ -16,6 +16,8 @@ import (
 const (
 	NodeKey              = "node"
 	SubscriptionIDKey    = "subscription"
+	ResourceGroupKey     = "resource-group"
+	ClusterNameKey       = "cluster-name"
 	NodeResourceGroupKey = "node-resource-group"
 	VMSSKey              = "vmss"
 	VMSSInstanceIDKey    = "instance-id"
