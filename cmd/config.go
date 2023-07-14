@@ -132,7 +132,8 @@ func importCmdCommand() *cobra.Command {
 		vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
 		if err != nil {
 			logrus.Warn("Could not get VMSS VMs via Kubernetes API")
-			logrus.Warn("Please provide '--subscription-id', '--resource-group' and '--cluster-name' flags to get VMSS VMs via Azure API")
+			logrus.Warnf("Please provide '--%s', '--%s' and '--%s' flags to get VMSS VMs via Azure API",
+				utils.SubscriptionIDKey, utils.ResourceGroupKey, utils.ClusterNameKey)
 			return nil, fmt.Errorf("getting VMSS VMs via Kuberntes API: %w", err)
 		}
 		return vms, nil
@@ -141,9 +142,10 @@ func importCmdCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import",
 		Short: "Import Kubernetes nodes in the configuration",
-		Long: "Import Kubernetes nodes in the configuration" + "\n\n" +
-			"It uses kubeconfig by default, but it can also use Azure API to get VMSS VMs." + "\n" +
-			"In case of Azure API, you need to provide '--subscription-id', '--resource-group' and '--cluster-name' flags.",
+		Long: fmt.Sprintf("Import Kubernetes nodes in the configuration"+"\n\n"+
+			"It uses kubeconfig by default, but it can also use Azure API to get VMSS VMs."+"\n"+
+			"In case of Azure API, you need to provide '--%s', '--%s' and '--%s' flags.",
+			utils.SubscriptionIDKey, utils.ResourceGroupKey, utils.ClusterNameKey),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			utils.DefaultSpinner.Start()
@@ -162,9 +164,9 @@ func importCmdCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&subscriptionID, "subscription-id", "s", "", "Subscription ID of the cluster (only needed with Azure API)")
-	cmd.Flags().StringVarP(&resourceGroup, "resource-group", "g", "", "Resource group of the cluster (only needed with Azure API)")
-	cmd.Flags().StringVarP(&clusterName, "cluster-name", "c", "", "Name of the cluster (only needed with Azure API)")
+	cmd.Flags().StringVarP(&subscriptionID, utils.SubscriptionIDKey, "", "", "Subscription ID of the cluster (only needed with Azure API)")
+	cmd.Flags().StringVarP(&resourceGroup, utils.ResourceGroupKey, "", "", "Resource group of the cluster (only needed with Azure API)")
+	cmd.Flags().StringVarP(&clusterName, utils.ClusterNameKey, "", "", "Name of the cluster (only needed with Azure API)")
 
 	return cmd
 }

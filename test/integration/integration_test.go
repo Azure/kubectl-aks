@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/Azure/kubectl-aks/cmd/utils/config"
 	"github.com/stretchr/testify/require"
 )
@@ -95,7 +96,11 @@ func TestConfigImport(t *testing.T) {
 	_, err = os.ReadFile(configPath)
 	require.NotNil(t, err, "reading config file: %v", err)
 
-	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import", "-s", subscriptionID, "-g", resourceGroup, "-c", clusterName)
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import",
+		"--"+utils.SubscriptionIDKey, subscriptionID,
+		"--"+utils.ResourceGroupKey, resourceGroup,
+		"--"+utils.ClusterNameKey, clusterName,
+	)
 	azureConfigFile, err := os.ReadFile(configPath)
 	require.Nil(t, err, "reading config file: %v", err)
 	require.NotEmpty(t, azureConfigFile, "config file is empty")
