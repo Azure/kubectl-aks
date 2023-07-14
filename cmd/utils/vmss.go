@@ -8,7 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -16,6 +19,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
+	"github.com/sirupsen/logrus"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -221,6 +225,17 @@ func RunCommand(
 		b, _ := json.MarshalIndent(vm, "", "  ")
 		fmt.Printf("Command: %s\nVirtual Machine Scale Set VM:\n%s\n\n", *command, string(b))
 	}
+
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-s
+		logrus.Warn("The requested command hasn't finished yet, hit 'Ctrl+C' again to exit anyway.")
+		logrus.Warn("However, please notice the command will continue running in the node anyway, " +
+			"and you will be unable to see the output or run another command until it finishes.")
+		<-s
+		os.Exit(1)
+	}()
 
 	poller, err := client.BeginRunCommand(ctx, vm.NodeResourceGroup,
 		vm.VMScaleSet, vm.InstanceID, runCommand, nil)
