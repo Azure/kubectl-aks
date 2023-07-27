@@ -16,14 +16,11 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-func runKubectlAKS(t *testing.T, args ...string) string {
+func runKubectlAKS(t *testing.T, args ...string) (string, string) {
 	t.Helper()
 
 	args = append(nodeFlag(t), args...)
-	stdout, stderr := runCommand(t, os.Getenv("KUBECTL_AKS"), args...)
-	require.Empty(t, stderr, "stderr = %v, want empty", stderr)
-
-	return stdout
+	return runCommand(t, os.Getenv("KUBECTL_AKS"), args...)
 }
 
 func runCommand(t *testing.T, name string, args ...string) (string, string) {

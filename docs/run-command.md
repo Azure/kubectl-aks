@@ -10,9 +10,6 @@ aks-agentpool-27170680-vmss000001   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000002   Ready    agent   11d   v1.22.4
 
 $ kubectl aks run-command "ip route" --node aks-agentpool-27170680-vmss000000
-Running...
-
-[stdout]
 default via 10.240.0.1 dev eth0 proto dhcp src 10.240.0.4 metric 100
 10.240.0.0/16 dev eth0 proto kernel scope link src 10.240.0.4
 10.244.2.2 dev calic38a36632c7 scope link
@@ -24,19 +21,6 @@ default via 10.240.0.1 dev eth0 proto dhcp src 10.240.0.4 metric 100
 10.244.2.14 dev cali8eecb1f59c6 scope link
 168.63.129.16 via 10.240.0.1 dev eth0 proto dhcp src 10.240.0.4 metric 100
 169.254.169.254 via 10.240.0.1 dev eth0 proto dhcp src 10.240.0.4 metric 100
-
-[stderr]
-```
-
-Another example when requested command prints information to the standard error:
-```
-$ kubectl aks run-command "cat non-existent-file" --node aks-agentpool-27170680-vmss000000
-Running...
-
-[stdout]
-
-[stderr]
-cat: non-existent-file: No such file or directory
 ```
 
 Or we could also pass directly the VMSS instance information:

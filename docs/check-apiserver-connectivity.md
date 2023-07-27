@@ -11,8 +11,6 @@ aks-agentpool-27170680-vmss000001   Ready    agent   11d   v1.22.4
 aks-agentpool-27170680-vmss000002   Ready    agent   11d   v1.22.4
 
 $ kubectl aks check-apiserver-connectivity --node aks-agentpool-27170680-vmss000000
-Running...
-
 Connectivity check: succeeded
 ```
 
@@ -48,7 +46,7 @@ Virtual Machine Scale Set VM:
   "InstanceID": "X"
 }
 
-Running...
+|
 
 Response:
 {

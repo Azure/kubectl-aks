@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -32,27 +30,33 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	// unset existing config to avoid conflicts with node flags
+	// TODO: use a different config file for integration tests
+	if err := config.New().UnsetAllConfig(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		os.Exit(1)
+	}
+
 	fmt.Println("Running integration tests")
 	m.Run()
 }
 
 func TestCheckAPIServerConnectivity(t *testing.T) {
-	out := runKubectlAKS(t, "check-apiserver-connectivity")
+	out, err := runKubectlAKS(t, "check-apiserver-connectivity")
+	require.Empty(t, err, "runKubectlAKS() = %v, want nil", err)
 	require.Contains(t, out, "Connectivity check: succeeded")
 }
 
 func TestRunCommandOutput(t *testing.T) {
 	// test stdout
-	out := runKubectlAKS(t, "run-command", "echo test")
-	stdout, stderr := parseRunCommand(t, out)
-	require.Equal(t, stdout, "test", "parseRunCommand() = %v, want %v", stdout, "test")
-	require.Empty(t, stderr, "parseRunCommand() = %v, want %v", stderr, "")
+	stdout, stderr := runKubectlAKS(t, "run-command", "echo -n test")
+	require.Empty(t, stderr, "runKubectlAKS() = %v, want nil", stderr)
+	require.Equal(t, stdout, "test", "runKubectlAKS() = %v, want %v", stdout, "test")
 
 	// test stderr
-	out = runKubectlAKS(t, "run-command", "echo test >&2")
-	stdout, stderr = parseRunCommand(t, out)
-	require.Empty(t, stdout, "parseRunCommand() = %v, want %v", stdout, "")
-	require.Equal(t, stderr, "test", "parseRunCommand() = %v, want %v", stderr, "test")
+	stdout, stderr = runKubectlAKS(t, "run-command", "echo -n test >&2")
+	require.Empty(t, stdout, "runKubectlAKS() = %v, want nil", stdout)
+	require.Equal(t, stderr, "test", "runKubectlAKS() = %v, want %v", stderr, "test")
 }
 
 func TestRunCommandTimeout(t *testing.T) {
@@ -66,14 +70,6 @@ func TestRunCommandTimeout(t *testing.T) {
 	case <-time.After(60 * time.Second):
 		t.Fatal("timed out waiting for command to finish")
 	}
-}
-
-func parseRunCommand(t *testing.T, out string) (string, string) {
-	split := regexp.MustCompile(`(\[(stdout|stderr)\])`).Split(out, -1)
-	require.Len(t, split, 3, "couldn't parse response message:\n%s", out)
-	stdOutput := strings.TrimSpace(split[1])
-	stdError := strings.TrimSpace(split[2])
-	return stdOutput, stdError
 }
 
 func TestConfigImport(t *testing.T) {
@@ -104,5 +100,5 @@ func TestConfigImport(t *testing.T) {
 	azureConfigFile, err := os.ReadFile(configPath)
 	require.Nil(t, err, "reading config file: %v", err)
 	require.NotEmpty(t, azureConfigFile, "config file is empty")
-	require.Equal(t, k8sConfigFile, azureConfigFile, "config file is not the same")
+	require.Equal(t, string(k8sConfigFile), string(azureConfigFile), "config file is not the same")
 }

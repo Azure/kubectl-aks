@@ -6,9 +6,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/spf13/cobra"
@@ -42,30 +40,21 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 	// Check connectivity by executing "kubectl version" on the node. This
 	// command will try to contact the API server to get the Kubernetes version
 	// it is running. Use only the return value of the command, tough.
-	command := "kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo $?"
+	command := "kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo -n $?"
 	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose, nil, utils.OutputTruncateTail)
 	if err != nil {
 		return fmt.Errorf("failed to run command that checks connectivity: %w", err)
 	}
 
-	// Extract stdout and stderr from response.
-	// Expected format: "[stdout]<text>[stderr]<text>"
-	split := regexp.MustCompile(`(\[(stdout|stderr)\])`).Split(res, -1)
-	if len(split) != 3 {
-		return fmt.Errorf("couldn't parse response message:\n%s", res)
-	}
-	stdOutput := strings.TrimSpace(split[1])
-	stdError := strings.TrimSpace(split[2])
-
 	// The stdout should contain the returned value of "kubectl version":
 	// 0 (succeeded), otherwise (failure)
-	ret, err := strconv.Atoi(stdOutput)
+	ret, err := strconv.Atoi(res.Stdout)
 	if err != nil {
-		return fmt.Errorf("couldn't parse stdout of response message:\n%s", res)
+		return fmt.Errorf("couldn't parse stdout of response message:\n%s", res.Stdout)
 	}
 	if ret != 0 {
 		fmt.Printf("\nConnectivity check: failed with returned value %d: %s\n",
-			ret, stdError)
+			ret, res.Stderr)
 
 		// Force the binary to return an exit code != 0 (forwarding command's
 		// return value). Useful if it is used in scripts.

@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/spf13/cobra"
@@ -75,6 +76,7 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	utils.DefaultSpinner.Stop()
-	fmt.Printf("%s", res)
+	fmt.Fprintf(os.Stderr, "%s", res.Stderr)
+	fmt.Fprintf(os.Stdout, "%s", res.Stdout)
 	return nil
 }
