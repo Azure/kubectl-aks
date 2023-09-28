@@ -34,8 +34,9 @@ func runCommand(t *testing.T, name string, args ...string) (string, string) {
 
 	t.Logf("Running command: %s", cmd.String())
 	err := cmd.Run()
-	require.Nil(t, err, "cmd.Run() = %v, want nil", err)
 	t.Logf("Command output: \n%s", stdout.String())
+	t.Logf("Command error: \n%s", stderr.String())
+	require.Nil(t, err, "cmd.Run() = %v, want nil", err)
 
 	return stdout.String(), stderr.String()
 }

@@ -1,6 +1,6 @@
 name: Azure Kubernetes Service kubectl plugin CI
 env:
-  GO_VERSION: 1.17 # TODO: Update
+  GO_VERSION: 1.18
   AZURE_PREFIX: kubectl-aks-ci
 concurrency:
   # Only one workflow can run at a time unless
@@ -242,6 +242,7 @@ jobs:
         run: |
           export AZURE_RESOURCE_GROUP=${{ env.AZURE_PREFIX }}-rg
           export AZURE_CLUSTER_NAME=${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
+          export AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
           make integration-test -o kubectl-aks
 
   release:
