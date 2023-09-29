@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -135,26 +136,36 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 	}
 
 	ctx := context.Background()
-	aksClient := armcontainerservice.NewManagedClustersClient(subID, creds, nil)
+	aksClient, err := armcontainerservice.NewManagedClustersClient(subID, creds, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating AKS client: %w", err)
+	}
 	cluster, err := aksClient.Get(ctx, rg, clusterName, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting cluster: %w", err)
 	}
 	var nodePools []string
-	vmssClient := armcompute.NewVirtualMachineScaleSetsClient(subID, creds, nil)
-	nodePoolPager := vmssClient.List(to.String(cluster.Properties.NodeResourceGroup), nil)
-	for nodePoolPager.NextPage(ctx) {
-		for _, np := range nodePoolPager.PageResponse().Value {
+	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subID, creds, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating VMSS client: %w", err)
+	}
+	nodePoolPager := vmssClient.NewListPager(to.String(cluster.Properties.NodeResourceGroup), nil)
+	for nodePoolPager.More() {
+		nextResult, err := nodePoolPager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting next page of node pools: %w", err)
+		}
+		for _, np := range nextResult.Value {
 			nodePools = append(nodePools, to.String(np.Name))
 		}
 	}
-	if err = nodePoolPager.Err(); err != nil {
-		return nil, fmt.Errorf("getting node pools: %w", err)
-	}
 	vmssVMs := make(map[string]*VirtualMachineScaleSetVM)
-	vmClient := armcompute.NewVirtualMachineScaleSetVMsClient(subID, creds, nil)
+	vmClient, err := armcompute.NewVirtualMachineScaleSetVMsClient(subID, creds, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating VMSS VMs client: %w", err)
+	}
 	for _, np := range nodePools {
-		instances, err := instancesForNodePool(vmClient, np, to.String(cluster.Properties.NodeResourceGroup))
+		instances, err := instancesForNodePool(ctx, vmClient, np, to.String(cluster.Properties.NodeResourceGroup))
 		if err != nil {
 			return nil, fmt.Errorf("getting instances for node pool %q: %w", np, err)
 		}
@@ -171,14 +182,15 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 	return vmssVMs, nil
 }
 
-func instancesForNodePool(vmClient *armcompute.VirtualMachineScaleSetVMsClient, pool, resourceGroup string) ([]*armcompute.VirtualMachineScaleSetVM, error) {
+func instancesForNodePool(ctx context.Context, vmClient *armcompute.VirtualMachineScaleSetVMsClient, pool, resourceGroup string) ([]*armcompute.VirtualMachineScaleSetVM, error) {
 	var instances []*armcompute.VirtualMachineScaleSetVM
-	pager := vmClient.List(resourceGroup, pool, nil)
-	for pager.NextPage(context.Background()) {
-		instances = append(instances, pager.PageResponse().Value...)
-	}
-	if err := pager.Err(); err != nil {
-		return nil, err
+	pager := vmClient.NewListPager(resourceGroup, pool, nil)
+	for pager.More() {
+		nextPage, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+		instances = append(instances, nextPage.Value...)
 	}
 	return instances, nil
 }
@@ -213,7 +225,10 @@ func RunCommand(
 		timeout = to.IntPtr(DefaultRunCommandTimeoutInSeconds)
 	}
 
-	client := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, nil)
+	client, err := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating VMSS VMs client: %w", err)
+	}
 
 	// By default, the Azure API limits the output to the last 4,096 bytes. See
 	// https://learn.microsoft.com/en-us/azure/virtual-machines/linux/run-command#restrictions.
@@ -249,7 +264,7 @@ func RunCommand(
 		return nil, fmt.Errorf("begin running command: %w", err)
 	}
 
-	res, err := poller.PollUntilDone(ctx, pollingFreq)
+	res, err := poller.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{Frequency: pollingFreq})
 	if err != nil {
 		return nil, fmt.Errorf("polling command response: %w", err)
 	}

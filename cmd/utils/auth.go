@@ -14,6 +14,7 @@ import (
 	"path"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -68,7 +69,7 @@ func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredentia
 
 	client, err := public.New(developerSignOnClientID,
 		public.WithCache(&tokenCache{file: file}),
-		public.WithAuthority(runtime.JoinPaths(string(azidentity.AzurePublicCloud), organizationsTenantID)),
+		public.WithAuthority(runtime.JoinPaths(cloud.AzurePublic.ActiveDirectoryAuthorityHost, organizationsTenantID)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating public client: %w", err)
@@ -78,7 +79,7 @@ func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredentia
 }
 
 // GetToken implements the azcore.TokenCredential interface on cachedInteractiveBrowserCredential.
-func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (*azcore.AccessToken, error) {
+func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	// TODO: may be this can be improved with https://github.com/Azure/kubectl-aks/issues/11
 	var account public.Account
 	if len(c.client.Accounts()) > 0 {
@@ -88,10 +89,10 @@ func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, optio
 	if err != nil {
 		result, err = c.client.AcquireTokenInteractive(ctx, options.Scopes)
 		if err != nil {
-			return nil, fmt.Errorf("acquiring interactive token: %w", err)
+			return azcore.AccessToken{}, fmt.Errorf("acquiring interactive token: %w", err)
 		}
 	}
-	return &azcore.AccessToken{Token: result.AccessToken, ExpiresOn: result.ExpiresOn}, nil
+	return azcore.AccessToken{Token: result.AccessToken, ExpiresOn: result.ExpiresOn}, nil
 }
 
 // tokenCache implements basic file based cache.ExportReplace to be used with the public.Client.
