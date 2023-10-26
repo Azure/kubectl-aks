@@ -2,6 +2,7 @@ name: Azure Kubernetes Service kubectl plugin CI
 env:
   GO_VERSION: 1.18
   AZURE_PREFIX: kubectl-aks-ci
+  AZURE_NODE_COUNT: 3 # multiple nodes are needed to allow running parallel 'run-command' against the same cluster
 concurrency:
   # Only one workflow can run at a time unless
   # we create a new AKS cluster per github_ref (branch)
@@ -112,6 +113,8 @@ jobs:
     name: Create AKS cluster
     needs: [ build, lint, unit-tests ]
     runs-on: ubuntu-latest
+    outputs:
+      nodes: ${{ steps.nodes.outputs.result }}
     strategy:
       fail-fast: false
       matrix:
@@ -135,8 +138,19 @@ jobs:
           az aks create \
             --resource-group ${{ env.AZURE_PREFIX }}-rg \
             --name ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster \
-            --node-count 1 \
-            --generate-ssh-keys
+            --node-count ${{ env.AZURE_NODE_COUNT }} \
+            --no-ssh-key
+      - uses: azure/aks-set-context@v3
+        name: Set AKS cluster ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster context
+        with:
+          cluster-name: ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
+          resource-group: ${{ env.AZURE_PREFIX }}-rg
+          admin: false
+      - name: Prepare list of nodes
+        id: nodes
+        shell: bash
+        run: |
+          echo "result=$(kubectl get nodes -o jsonpath={.items[*].metadata.name} | jq -R -s -c 'split(" ")')" >> $GITHUB_OUTPUT
 
   delete-aks-cluster:
     name: Delete AKS cluster
@@ -174,9 +188,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      # 'run-command' is not supported in parallel for a given node
-      # (don't want to create a new cluster for each OS)
-      max-parallel: 1
       matrix:
         os: [ ubuntu-latest, macOS-latest, windows-latest ]
         arch: [ amd64 ] # TODO: Support ARM
@@ -187,6 +198,13 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Ensure enough nodes are available to run parallel tests
+        shell: bash
+        run: |
+          if [ $(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r '. | length') -lt ${{ strategy.job-total }} ]; then
+            echo "Not enough nodes to run parallel tests"
+            exit 1
+          fi
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
@@ -237,12 +255,17 @@ jobs:
       - if: matrix.os != 'ubuntu-latest'
         # kubectl is already installed in Linux runners
         uses: azure/setup-kubectl@v3
+        # setup-kubectl doesn't support v1.28.2+ macOS (amd64) yet
+        # https://github.com/Azure/setup-kubectl/issues/88
+        with:
+          version: 'v1.28.2'
       - name: Run integration tests
         shell: bash
         run: |
           export AZURE_RESOURCE_GROUP=${{ env.AZURE_PREFIX }}-rg
           export AZURE_CLUSTER_NAME=${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
           export AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
+          export AZURE_NODE_NAME=$(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r ".[${{ strategy.job-index }}]")
           make integration-test -o kubectl-aks
 
   release:
