@@ -268,6 +268,33 @@ jobs:
           export AZURE_NODE_NAME=$(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r ".[${{ strategy.job-index }}]")
           make integration-test -o kubectl-aks
 
+  documentation-test:
+    name: Run documentation tests
+    runs-on: ubuntu-latest
+    needs: [ build, unit-tests ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.20.0' # ie requires go 1.20+
+          check-latest: true
+      # Use official krew installation guide:
+      # https://krew.sigs.k8s.io/docs/user-guide/setup/install/
+      - name: Install krew
+        run: |
+          set -x; cd "$(mktemp -d)" && \
+          OS="$(uname | tr '[:upper:]' '[:lower:]')" && \
+          ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" && \
+          KREW="krew-${OS}_${ARCH}" && \
+          curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" && \
+          tar zxvf "${KREW}.tar.gz" && \
+          ./"${KREW}" install krew && \
+          cp ~/.krew/bin/kubectl-krew /usr/local/bin/kubectl-krew
+          echo "$HOME/.krew/bin" >> $GITHUB_PATH
+      - name: Run Documentation tests
+        run: make documentation-test -o kubectl-aks
+
   release:
     name: Release
     needs: [ integration-tests ]

@@ -18,6 +18,8 @@ endif
 
 LINTER_VERSION ?= v1.53.2
 
+include ie.mk
+
 LDFLAGS := "-X github.com/Azure/kubectl-aks/cmd.version=$(VERSION) -extldflags '-static'"
 
 .DEFAULT_GOAL := kubectl-aks
@@ -69,6 +71,11 @@ install: kubectl-aks
 	mkdir -p ~/.local/bin/
 	cp kubectl-aks ~/.local/bin/
 
+# Uninstall
+.PHONY: uninstall
+uninstall:
+	rm -f ~/.local/bin/kubectl-aks
+
 # Run unit tests
 .PHONY: unit-test
 unit-test:
@@ -82,6 +89,12 @@ integration-test: kubectl-aks
 	AZURE_RESOURCE_GROUP=$(AZURE_RESOURCE_GROUP) \
 	AZURE_CLUSTER_NAME=$(AZURE_CLUSTER_NAME) \
 		go test -v ./test/integration/... -integration
+
+# Run documentation tests
+.PHONY: documentation-test
+documentation-test: kubectl-aks install-ie
+	ie --help > /dev/null || (echo "ie is not installed, please install it from https://github.com/Azure/InnovationEngine" && exit 1)
+	ie execute README.md
 
 # Clean
 .PHONY: clean
