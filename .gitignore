@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+*.ini
 /kubectl-aks
 /kubectl-aks-*-*
 
