@@ -44,6 +44,10 @@ func runCommand(t *testing.T, name string, args ...string) (string, string) {
 func nodeFlag(t *testing.T) []string {
 	t.Helper()
 
+	if envNodeName := os.Getenv("AZURE_NODE_NAME"); envNodeName != "" {
+		return []string{"--node", envNodeName}
+	}
+
 	clientset, err := k8sutil.NewClientsetFromConfigFlags(genericclioptions.NewConfigFlags(false))
 	require.Nil(t, err, "k8sutil.NewClientsetFromConfigFlags() = %v, want nil", err)
 
