@@ -49,6 +49,12 @@ kubectl krew install aks
 kubectl aks version
 ```
 
+It can be uninstalled using the following command:
+
+```bash
+kubectl krew uninstall aks
+```
+
 ### Install a specific release
 
 It is possible to download the asset for a given release and platform from the
@@ -56,9 +62,15 @@ It is possible to download the asset for a given release and platform from the
 move the `kubectl-aks` executable to any folder in your `$PATH`.
 
 ```bash
-VERSION=v0.2.0
-curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C /usr/local/bin -xzf - kubectl-aks
+VERSION=$(curl -s https://api.github.com/repos/azure/kubectl-aks/releases/latest | jq -r .tag_name)
+curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C ${HOME}/.local/bin -xzf - kubectl-aks
 kubectl aks version
+```
+
+It can be uninstalled by using the following command:
+
+```bash
+rm ${HOME}/.local/bin/kubectl-aks
 ```
 
 ### Compile from source
@@ -74,9 +86,15 @@ make install
 kubectl aks version
 ```
 
-## Usage
+It can be uninstalled by using the following command:
 
 ```bash
+make uninstall
+```
+
+## Usage
+
+```
 $ kubectl aks --help
 Azure Kubernetes Service (AKS) kubectl plugin
 
