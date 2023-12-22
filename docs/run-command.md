@@ -28,7 +28,7 @@ nodes:
         [...]
 
 # Start using one of those nodes
-$ kubectl aks use-node aks-agentpool-12345678-vmss000000
+$ kubectl aks config use-node aks-agentpool-12345678-vmss000000
 
 # Execute the run-command, and it will be automatically executed in aks-agentpool-12345678-vmss000000
 $ kubectl aks run-command "ip route"
