@@ -2,8 +2,7 @@
 
 We can use the `config` command to configure node information for `kubectl-aks` commands.
 This allows ease of switching between different nodes and persisting the configuration. Nodes can be configured
-either specifying the `--node` or `--resource-id` or VMSS instance information(`--subscription`, `--node-resource-group`, `--vmss`, `--instance-id`).
-All three options are mutually exclusive:
+either specifying the `--node` or `--id` or VMSS instance information (`--subscription`, `--node-resource-group`, `--vmss`, `--instance-id`). All three options are mutually exclusive:
 
 ```bash
 $ kubectl aks config --help
@@ -31,7 +30,7 @@ As an example, we set a couple of nodes in the configuration (using VMSS instanc
 
 ```bash
 $ kubectl aks config set-node node1 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID1
-$ kubectl aks config set-node node2 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID2
+$ kubectl aks config set-node node2 --id "/subscriptions/mySubID/resourceGroups/myRG/providers/Microsoft.Compute/virtualMachineScaleSets/myVMSS/virtualmachines/myInstanceID2"
 $ kubectl aks show
 nodes:
     node1:
@@ -57,6 +56,12 @@ the `unset-node`/`unset-all`/`unset-current-node` commands.
 
 ## Importing configuration
 
+`kubectl-aks` can also import the node information from the Kubernetes API
+server or Azure API using the `config import` command. By default, if no flags
+are passed, `kubectl-aks` will try to retrieve the node information from the
+Kubernetes API server:
+
+```bash
 We can also import the node information using the AKS cluster credentials already available in the `kubeconfig` file:
 
 ```bash
@@ -87,15 +92,15 @@ nodes:
 $ kubectl aks use-node aks-agentpool-12345678-vmss000000
 ```
 
-Or in case Kubernetes API is not available, we can also import the node information using Azure API by specifying the cluster information:
+If the Kubernetes API server is not available or we can't rely on it for some
+reason (e.g. we are investigating connectivity issues between nodes and the API
+server), we can use the `--subscription`, `--resource-group` and
+`--cluster-name` flags to retrieve the node information from the Azure API:
 
 ```bash
-$ kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name myCluster
-$ kubectl aks config show
+kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name myCluster
+kubectl aks config show
 ```
-
-The information is stored with node name as key and VMSS instance information as value to avoid talking to be able
-to continue talking with the node, even if the API server is not working correctly.
 
 ## Precedence of configuration
 
@@ -109,7 +114,7 @@ pass the node information to the commands. The precedence of the configuration i
 Using the flags:
 
 ```bash
-$ kubectl aks check-apiserver-connectivity --node aks-agentpool-77471288-vmss000013
+kubectl aks check-apiserver-connectivity --node aks-agentpool-77471288-vmss000013
 ```
 
 or using the environment variables:
@@ -119,5 +124,5 @@ or using the environment variables:
 - `KUBECTL_AKS_SUBSCRIPTION`, `KUBECTL_AKS_NODE_RESOURCE_GROUP`, `KUBECTL_AKS_VMSS` and `KUBECTL_AKS_INSTANCE_ID`
 
 ```bash
-$ KUBECTL_AKS_NODE=aks-agentpool-77471288-vmss000013 kubectl aks check-apiserver-connectivity
+KUBECTL_AKS_NODE=aks-agentpool-77471288-vmss000013 kubectl aks check-apiserver-connectivity
 ```

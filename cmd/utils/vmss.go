@@ -85,7 +85,7 @@ func VirtualMachineScaleSetVMFromConfig() (*VirtualMachineScaleSetVM, error) {
 		// the VMSS information of that node is already in the config file.
 		config := config.New()
 		if cc, ok := config.GetNodeConfig(node); ok {
-			log.Warnf("Using VMSS information from config for node %s", node)
+			log.Debugf("Using VMSS information from config for node %s", node)
 
 			vm.SubscriptionID = cc.GetString(SubscriptionIDKey)
 			vm.NodeResourceGroup = cc.GetString(NodeResourceGroupKey)
