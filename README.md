@@ -10,9 +10,9 @@ against the cluster nodes, regardless of the control plane's state.
 It's important to note that this plugin does not replace the Azure CLI,
 [az](https://learn.microsoft.com/en-us/cli/azure/?view=azure-cli-latest).
 Instead, it complements it by offering additional commands and providing users
-with a kubectl-like experience. In practice, users will use az to create and
-delete their AKS cluster, and then use kubectl and kubectl-aks to interact with
-and debug it.
+with a kubectl-like experience. In practice, users will use `az` to create and
+delete their AKS cluster, and then use `kubectl` and `kubectl-aks` to interact
+with and debug it.
 
 Going through the following documentation will help you to understand each
 available command and which one is the most suitable for your case:
@@ -21,17 +21,17 @@ available command and which one is the most suitable for your case:
 - [check-apiserver-connectivity](docs/check-apiserver-connectivity.md)
 - [config](docs/config.md)
 
-Consider `kubectl-aks` expects the cluster to use virtual machine scale sets,
-which is the case of an AKS cluster. And, the use of the `--node` flag requires
-the Kubernetes control plane to up and running, because the VMSS instance
-information of the node will be retrieved from the Kubernetes API server.
+Take into account that `kubectl-aks` expects the cluster to use virtual machine
+scale sets, which is the case of an AKS cluster.
 
-However, in case of issues with the Kubernetes control plane, you can reuse the
-already stored VMSS instance information, see [config](docs/config.md) command.
-Or, if it is a cluster you have never used before on that host, you can retrieve
-such information from the [Azure portal](https://portal.azure.com/) and pass it
-to the commands using the `--id` flag or separately with the `--subscription`,
-`--node-resource-group`, `--vmss` and `--instance-id` flags.
+You can get the node information needed to execute the commands directly from
+the [Azure portal](https://portal.azure.com/) or you can let `kubectl-aks` get
+that information for you. If you already have such a information, you can pass
+it using the flags or environment variables. If you don't have it, `kubectl-aks`
+can retrieve it either from the Azure API or the Kubernetes API server. If you
+expect to use the same node multiple times, it is recommended to import the node
+information in the configuration file and set it as the default node, see the
+[config](docs/config.md) command for further details.
 
 ## Install
 

@@ -20,8 +20,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -75,10 +76,24 @@ func ParseVMSSResourceID(id string, vm *VirtualMachineScaleSetVM) error {
 	return nil
 }
 
-// VirtualMachineScaleSetVMFromConfig returns a VirtualMachineScaleSetVM object it assumes that the config is set and valid
+// VirtualMachineScaleSetVMFromConfig returns a VirtualMachineScaleSetVM object
+// it assumes that the config is set and valid
 func VirtualMachineScaleSetVMFromConfig() (*VirtualMachineScaleSetVM, error) {
 	var vm VirtualMachineScaleSetVM
 	if node != "" {
+		// Before trying to get the resource ID from the API server, verify if
+		// the VMSS information of that node is already in the config file.
+		config := config.New()
+		if cc, ok := config.GetNodeConfig(node); ok {
+			log.Debugf("Using VMSS information from config for node %s", node)
+
+			vm.SubscriptionID = cc.GetString(SubscriptionIDKey)
+			vm.NodeResourceGroup = cc.GetString(NodeResourceGroupKey)
+			vm.VMScaleSet = cc.GetString(VMSSKey)
+			vm.InstanceID = cc.GetString(VMSSInstanceIDKey)
+			return &vm, nil
+		}
+
 		var err error
 		resourceID, err = GetNodeResourceID(context.TODO(), node)
 		if err != nil {
@@ -251,8 +266,8 @@ func RunCommand(
 	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-s
-		logrus.Warn("The requested command hasn't finished yet, hit 'Ctrl+C' again to exit anyway.")
-		logrus.Warn("However, please notice the command will continue running in the node anyway, " +
+		log.Warn("The requested command hasn't finished yet, hit 'Ctrl+C' again to exit anyway.")
+		log.Warn("However, please notice the command will continue running in the node anyway, " +
 			"and you will be unable to see the output or run another command until it finishes.")
 		<-s
 		os.Exit(1)

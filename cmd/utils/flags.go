@@ -104,8 +104,11 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		config := config.New()
-		if !useFlagsOnly {
+		// If node or resource ID is set, we don't need to read the config file
+		// nor the environment variables because the CLI flags have precedence.
+		if !useFlagsOnly && node == "" && resourceID == "" {
+			config := config.New()
+
 			if cc, ok := config.CurrentConfig(); ok {
 				config = cc
 			}
@@ -131,7 +134,7 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 			resourceID = config.GetString(ResourceIDKey)
 		}
 
-		// validate the config
+		// validate the parameters
 		var nodeSet, vmssInfoSet, resourceIDSet bool
 		if node != "" {
 			nodeSet = true

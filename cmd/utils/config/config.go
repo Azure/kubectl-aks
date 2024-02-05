@@ -70,3 +70,14 @@ func (c *config) CurrentConfig() (*config, bool) {
 	}
 	return &config{Viper: c.Sub("nodes." + currentNode)}, true
 }
+
+// GetNodeConfig returns the configuration for the given node if it exists
+func (c *config) GetNodeConfig(node string) (*config, bool) {
+	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, false
+	}
+	if v := c.Sub("nodes." + node); v != nil {
+		return &config{Viper: v}, true
+	}
+	return nil, false
+}
