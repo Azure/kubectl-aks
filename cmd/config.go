@@ -21,6 +21,7 @@ var configCmd = &cobra.Command{
 var showConfigCmd = &cobra.Command{
 	Use:          "show",
 	Short:        "Show the configuration",
+	Args:         cobra.NoArgs,
 	RunE:         showConfigCmdRun,
 	SilenceUsage: true,
 }
@@ -35,6 +36,7 @@ var useNodeCmd = &cobra.Command{
 var unsetCurrentNodeCmd = &cobra.Command{
 	Use:          "unset-current-node",
 	Short:        "Unset the current node in the configuration",
+	Args:         cobra.NoArgs,
 	RunE:         unsetCurrentNodeCmdRun,
 	SilenceUsage: true,
 }
@@ -49,6 +51,7 @@ var unsetNodeCmd = &cobra.Command{
 var unsetAllCmd = &cobra.Command{
 	Use:          "unset-all",
 	Short:        "Unset all nodes in the configuration",
+	Args:         cobra.NoArgs,
 	RunE:         unsetAllCmdRun,
 	SilenceUsage: true,
 }
@@ -147,6 +150,7 @@ func importCmdCommand() *cobra.Command {
 			"In case of Azure API, you need to provide '--%s', '--%s' and '--%s' flags.",
 			utils.SubscriptionIDKey, utils.ResourceGroupKey, utils.ClusterNameKey),
 		SilenceUsage: true,
+		Args:         cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			utils.DefaultSpinner.Start()
 			defer utils.DefaultSpinner.Stop()

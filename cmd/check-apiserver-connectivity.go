@@ -15,6 +15,7 @@ import (
 var connCheckCmd = &cobra.Command{
 	Use:          "check-apiserver-connectivity",
 	Short:        "Check connectivity between the nodes and the Kubernetes API Server",
+	Args:         cobra.NoArgs,
 	RunE:         connCheckCmdRun,
 	SilenceUsage: true,
 }
