@@ -27,7 +27,6 @@ func init() {
 }
 
 func connCheckCmdRun(cmd *cobra.Command, args []string) error {
-	utils.DefaultSpinner.Start()
 	cred, err := utils.GetCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
@@ -54,7 +53,7 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("couldn't parse stdout of response message:\n%s", res.Stdout)
 	}
 	if ret != 0 {
-		fmt.Printf("\nConnectivity check: failed with returned value %d: %s\n",
+		fmt.Printf("Connectivity check: failed with returned value %d: %s\n",
 			ret, res.Stderr)
 
 		// Force the binary to return an exit code != 0 (forwarding command's
@@ -62,7 +61,6 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 		os.Exit(ret)
 	}
 
-	utils.DefaultSpinner.Stop()
 	fmt.Println("Connectivity check: succeeded")
 
 	return nil

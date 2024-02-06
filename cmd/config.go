@@ -125,20 +125,27 @@ func importCmdCommand() *cobra.Command {
 	var clusterName string
 
 	virtualMachineScaleSetVMs := func() (map[string]*utils.VirtualMachineScaleSetVM, error) {
+		utils.DefaultSpinner.Start()
+		utils.DefaultSpinner.Suffix = " Importing..."
+
 		if subscriptionID != "" && resourceGroup != "" && clusterName != "" {
 			vms, err := utils.VirtualMachineScaleSetVMsViaAzureAPI(subscriptionID, resourceGroup, clusterName)
+			utils.DefaultSpinner.Stop()
 			if err != nil {
 				return nil, fmt.Errorf("getting VMSS VMs via Azure API: %w", err)
 			}
 			return vms, nil
 		}
+
 		vms, err := utils.VirtualMachineScaleSetVMsViaKubeconfig()
+		utils.DefaultSpinner.Stop()
 		if err != nil {
 			logrus.Warn("Could not get VMSS VMs via Kubernetes API")
 			logrus.Warnf("Please provide '--%s', '--%s' and '--%s' flags to get VMSS VMs via Azure API",
 				utils.SubscriptionIDKey, utils.ResourceGroupKey, utils.ClusterNameKey)
 			return nil, fmt.Errorf("getting VMSS VMs via Kuberntes API: %w", err)
 		}
+
 		return vms, nil
 	}
 
@@ -152,8 +159,6 @@ func importCmdCommand() *cobra.Command {
 		SilenceUsage: true,
 		Args:         cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			utils.DefaultSpinner.Start()
-			defer utils.DefaultSpinner.Stop()
 			vms, err := virtualMachineScaleSetVMs()
 			if err != nil {
 				return err

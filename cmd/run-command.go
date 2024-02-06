@@ -54,7 +54,6 @@ func init() {
 }
 
 func runCommandCmdRun(cmd *cobra.Command, args []string) error {
-	utils.DefaultSpinner.Start()
 	cred, err := utils.GetCredentials()
 	if err != nil {
 		return fmt.Errorf("authenticating: %w", err)
@@ -75,7 +74,6 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("running command: %w", err)
 	}
 
-	utils.DefaultSpinner.Stop()
 	fmt.Fprintf(os.Stderr, "%s", res.Stderr)
 	fmt.Fprintf(os.Stdout, "%s", res.Stdout)
 	return nil
