@@ -273,13 +273,18 @@ func RunCommand(
 		os.Exit(1)
 	}()
 
+	DefaultSpinner.Start()
+	DefaultSpinner.Suffix = " Running..."
+
 	poller, err := client.BeginRunCommand(ctx, vm.NodeResourceGroup,
 		vm.VMScaleSet, vm.InstanceID, runCommand, nil)
 	if err != nil {
+		DefaultSpinner.Stop()
 		return nil, fmt.Errorf("begin running command: %w", err)
 	}
 
 	res, err := poller.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{Frequency: pollingFreq})
+	DefaultSpinner.Stop()
 	if err != nil {
 		return nil, fmt.Errorf("polling command response: %w", err)
 	}
