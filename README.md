@@ -138,6 +138,17 @@ roles e.g Contributor, you should have the above permissions. However, if you ar
 using [custom roles](https://learn.microsoft.com/en-us/azure/role-based-access-control/custom-roles-portal) for a
 service principal, you need to make sure that the permissions are granted.
 
+## Thanks
+
+- [az](https://github.com/Azure/azure-cli): `kubectl-aks` is inspired by the
+  Azure CLI.
+- [azure-sdk-for-net](https://github.com/Azure/azure-sdk-for-net): it is used to
+  interact with the Azure API.
+- [krew](https://sigs.k8s.io/krew): it is used to distribute `kubectl-aks` as a
+  kubectl plugin.
+- [InnovationEngine](https://github.com/Azure/InnovationEngine/): it is used to
+  ensure that the documentation is always up to date.
+
 ## Contributing
 
 This project welcomes contributions and suggestions. Most contributions require
