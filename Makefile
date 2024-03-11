@@ -91,10 +91,18 @@ integration-test: kubectl-aks
 		go test -v ./test/integration/... -integration
 
 # Run documentation tests
-.PHONY: documentation-test
-documentation-test: kubectl-aks install-ie
-	ie --help > /dev/null || (echo "ie is not installed, please install it from https://github.com/Azure/InnovationEngine" && exit 1)
+.PHONY: documentation-test-readme
+documentation-test-readme: install-ie
 	ie execute README.md
+
+DOCUMENTATION_TEST_FILES ?= \
+	./docs/run-command.md
+
+.PHONY: documentation-test-commands
+documentation-test-commands: install install-ie
+	for file in $(DOCUMENTATION_TEST_FILES); do \
+		ie execute $$file; \
+	done
 
 # Clean
 .PHONY: clean
