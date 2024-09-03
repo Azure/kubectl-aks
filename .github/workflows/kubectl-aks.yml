@@ -231,7 +231,7 @@ jobs:
               ;;
           esac
       - name: Get kubectl-aks from artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: kubectl-aks-${{ env.os }}-${{ matrix.arch }}-tar-gz
       - name: Prepare kubectl-aks binary
@@ -306,7 +306,7 @@ jobs:
     # Checkout the repo to get the .krew.yaml file
     - uses: actions/checkout@v3
     - name: Get all artifacts.
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
     - name: Rename all artifacts to kubectl-aks-${{ github.ref_name }}.tar.gz
       shell: bash
       run: |
