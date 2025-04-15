@@ -1,8 +1,10 @@
 name: Azure Kubernetes Service kubectl plugin CI
 env:
-  GO_VERSION: 1.18
+  GO_VERSION: 1.23
   AZURE_PREFIX: kubectl-aks-ci
   AZURE_NODE_COUNT: 3 # multiple nodes are needed to allow running parallel 'run-command' against the same cluster
+  AZURE_VM_SIZE: Standard_D2_v5
+  AZURE_LOCATION: westus2
 concurrency:
   # Only one workflow can run at a time unless
   # we create a new AKS cluster per github_ref (branch)
@@ -61,7 +63,7 @@ jobs:
             -czf ${target}.tar.gz \
             $binary_name LICENSE
       - name: Add kubectl-aks-${{ matrix.os }}-${{ matrix.arch }}.tar.gz as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kubectl-aks-${{ matrix.os }}-${{ matrix.arch }}-tar-gz
           path: kubectl-aks-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
@@ -77,10 +79,10 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
       - name: Lint
-        uses: golangci/golangci-lint-action@v3.5.0
+        uses: golangci/golangci-lint-action@v6
         with:
           # This version number must be kept in sync with Makefile lint one.
-          version: v1.53.2
+          version: v1.64.8
           working-directory: /home/runner/work/kubectl-aks/kubectl-aks
           # Workaround to display the output:
           # https://github.com/golangci/golangci-lint-action/issues/119#issuecomment-981090648
@@ -127,7 +129,7 @@ jobs:
       contents: read
     steps:
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_AKS_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_AKS_TENANT_ID }}
@@ -139,6 +141,8 @@ jobs:
             --resource-group ${{ env.AZURE_PREFIX }}-rg \
             --name ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster \
             --node-count ${{ env.AZURE_NODE_COUNT }} \
+            --node-vm-size ${{ env.AZURE_VM_SIZE }} \
+            --location ${{ env.AZURE_LOCATION }} \
             --no-ssh-key
       - uses: azure/aks-set-context@v3
         name: Set AKS cluster ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster context
@@ -231,7 +235,7 @@ jobs:
               ;;
           esac
       - name: Get kubectl-aks from artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: kubectl-aks-${{ env.os }}-${{ matrix.arch }}-tar-gz
       - name: Prepare kubectl-aks binary
@@ -241,7 +245,7 @@ jobs:
           chmod +x kubectl-aks
           ls -la
       - name: Login to Azure
-        uses: azure/login@v1
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_AKS_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_AKS_TENANT_ID }}
@@ -266,6 +270,7 @@ jobs:
           export AZURE_CLUSTER_NAME=${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
           export AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
           export AZURE_NODE_NAME=$(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r ".[${{ strategy.job-index }}]")
+          export
           make integration-test -o kubectl-aks
 
   documentation-test:
@@ -306,7 +311,7 @@ jobs:
     # Checkout the repo to get the .krew.yaml file
     - uses: actions/checkout@v3
     - name: Get all artifacts.
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
     - name: Rename all artifacts to kubectl-aks-${{ github.ref_name }}.tar.gz
       shell: bash
       run: |

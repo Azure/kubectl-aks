@@ -16,7 +16,7 @@ else
 	VERSION := $(TAG)-dirty
 endif
 
-LINTER_VERSION ?= v1.53.2
+LINTER_VERSION ?= v1.64.8
 
 include ie.mk
 
