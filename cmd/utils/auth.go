@@ -81,9 +81,13 @@ func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredentia
 // GetToken implements the azcore.TokenCredential interface on cachedInteractiveBrowserCredential.
 func (c *cachedInteractiveBrowserCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	// TODO: may be this can be improved with https://github.com/Azure/kubectl-aks/issues/11
+	accounts, err := c.client.Accounts(ctx)
+	if err != nil {
+		return azcore.AccessToken{}, fmt.Errorf("getting account: %w", err)
+	}
 	var account public.Account
-	if len(c.client.Accounts()) > 0 {
-		account = c.client.Accounts()[len(c.client.Accounts())-1]
+	if len(accounts) > 0 {
+		account = accounts[len(accounts)-1]
 	}
 	result, err := c.client.AcquireTokenSilent(ctx, options.Scopes, public.WithSilentAccount(account))
 	if err != nil {
@@ -100,21 +104,22 @@ type tokenCache struct {
 	file string
 }
 
-func (t *tokenCache) Replace(cache cache.Unmarshaler, key string) {
+func (t *tokenCache) Replace(ctx context.Context, cache cache.Unmarshaler, hints cache.ReplaceHints) error {
 	data, err := os.ReadFile(t.file)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		fmt.Fprintf(os.Stderr, "Warn: reading token cache: %s\n", err)
+		return fmt.Errorf("reading token cache: %w", err)
 	}
 	err = cache.Unmarshal(data)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warn: unmarshaling token cache: %s\n", err)
+		return fmt.Errorf("unmarshaling token cache: %w", err)
 	}
+	return nil
 }
 
-func (t *tokenCache) Export(cache cache.Marshaler, key string) {
+func (t *tokenCache) Export(ctx context.Context, cache cache.Marshaler, hints cache.ExportHints) error {
 	data, err := cache.Marshal()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warn: marshaling token cache: %s\n", err)
+		return fmt.Errorf("marshaling token cache: %w", err)
 	}
 	var indentedData bytes.Buffer
 	if err = json.Indent(&indentedData, data, "", "  "); err == nil {
@@ -122,6 +127,7 @@ func (t *tokenCache) Export(cache cache.Marshaler, key string) {
 	}
 	err = os.WriteFile(t.file, data, 0o600)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warn: writing token cache: %s\n", err)
+		return fmt.Errorf("writing token cache: %w", err)
 	}
+	return nil
 }
