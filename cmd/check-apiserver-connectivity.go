@@ -41,7 +41,7 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 	// command will try to contact the API server to get the Kubernetes version
 	// it is running. Use only the return value of the command, tough.
 	command := "kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo -n $?"
-	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose, nil, utils.OutputTruncateTail)
+	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, nil, utils.OutputTruncateTail)
 	if err != nil {
 		return fmt.Errorf("failed to run command that checks connectivity: %w", err)
 	}

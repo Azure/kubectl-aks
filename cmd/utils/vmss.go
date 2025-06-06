@@ -223,7 +223,6 @@ func RunCommand(
 	cred azcore.TokenCredential,
 	vm *VirtualMachineScaleSetVM,
 	command *string,
-	verbose bool,
 	timeout *int,
 	outputTruncate OutputTruncate,
 ) (
@@ -257,11 +256,8 @@ func RunCommand(
 		Script:    script,
 	}
 
-	if verbose {
-		b, _ := json.MarshalIndent(vm, "", "  ")
-		fmt.Printf("Command: %s\nVirtual Machine Scale Set VM:\n%s\n\n", *command, string(b))
-	}
-
+	b, _ := json.MarshalIndent(vm, "", "  ")
+	log.Debugf("Command: %s\nVirtual Machine Scale Set VM:\n%s\n\n", *command, string(b))
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -289,11 +285,8 @@ func RunCommand(
 		return nil, fmt.Errorf("polling command response: %w", err)
 	}
 
-	if verbose {
-		b, _ := json.MarshalIndent(res, "", "  ")
-		fmt.Printf("\nResponse:\n%s\n", string(b))
-	}
-
+	b, _ = json.MarshalIndent(res, "", "  ")
+	log.Debugf("\nResponse:\n%s\n", string(b))
 	// TODO: Is it possible to have multiple values after using PollUntilDone()?
 	if len(res.Value) == 0 || res.Value[0] == nil {
 		return nil, errors.New("no response received after command execution")
