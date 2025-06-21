@@ -22,6 +22,7 @@ const (
 	VMSSKey              = "vmss"
 	VMSSInstanceIDKey    = "instance-id"
 	ResourceIDKey        = "id"
+	CurrentNodeKey       = "current-node"
 )
 
 // We need package level variables to ensure that the viper flag binding works correctly.
@@ -33,6 +34,7 @@ var (
 	vmss              string
 	vmssInstanceID    string
 	resourceID        string
+	currentNode       bool
 )
 
 // CommonFlags contains CLI flags common for all subcommands
@@ -101,6 +103,12 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 		`Resource ID containing all information of the VMSS instance using format:
 		e.g. /subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID.
 		Notice it is not case sensitive.`,
+	)
+	command.PersistentFlags().BoolVarP(
+		&currentNode,
+		CurrentNodeKey, "",
+		false,
+		"Sets node as current node.",
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
