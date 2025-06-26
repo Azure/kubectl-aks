@@ -69,7 +69,7 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 		outputTruncate = utils.OutputTruncateHead
 	}
 
-	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, commonFlags.Verbose, &timeout, outputTruncate)
+	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, &timeout, outputTruncate)
 	if err != nil {
 		return fmt.Errorf("running command: %w", err)
 	}

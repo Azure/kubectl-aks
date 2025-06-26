@@ -68,6 +68,10 @@ var importCmd = importCmdCommand()
 
 func init() {
 	utils.AddCommonFlags(configCmd, &commonFlags)
+
+	if commonFlags.Verbose {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 	rootCmd.AddCommand(configCmd)
 
 	configCmd.AddCommand(showConfigCmd, useNodeCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd, importCmd)
