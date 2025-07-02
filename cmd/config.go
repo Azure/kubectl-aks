@@ -26,13 +26,6 @@ var showConfigCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
-var useNodeCmd = &cobra.Command{
-	Use:          "use-node",
-	Short:        "Set the current node in the configuration",
-	RunE:         useNodeCmdRun,
-	SilenceUsage: true,
-}
-
 var unsetCurrentNodeCmd = &cobra.Command{
 	Use:          "unset-current-node",
 	Short:        "Unset the current node in the configuration",
@@ -74,19 +67,12 @@ func init() {
 	}
 	rootCmd.AddCommand(configCmd)
 
-	configCmd.AddCommand(showConfigCmd, useNodeCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd, importCmd)
+	configCmd.AddCommand(showConfigCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetAllCmd, setNodeCmd, importCmd)
 	utils.AddNodeFlagsOnly(setNodeCmd)
 }
 
 func showConfigCmdRun(cmd *cobra.Command, args []string) error {
 	return config.New().ShowConfig()
-}
-
-func useNodeCmdRun(cmd *cobra.Command, args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("usage: %s <node name>", cmd.CommandPath())
-	}
-	return config.New().UseNodeConfig(args[0])
 }
 
 func unsetCurrentNodeCmdRun(cmd *cobra.Command, args []string) error {
@@ -119,7 +105,17 @@ func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 		nrg := cmd.Flag(utils.NodeResourceGroupKey).Value.String()
 		vmss := cmd.Flag(utils.VMSSKey).Value.String()
 		insID := cmd.Flag(utils.VMSSInstanceIDKey).Value.String()
-		return cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
+		err := cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
+		if err != nil {
+			return fmt.Errorf("setting node %s : %w", args[0], err)
+		}
+
+		if setNode, _ := cmd.Flags().GetBool(utils.CurrentNodeKey); setNode {
+			if setNode {
+				return cfg.UseNodeConfig(args[0])
+			}
+		}
+		return nil
 	}
 }
 
