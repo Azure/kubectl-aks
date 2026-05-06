@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
+	pkgruntime "github.com/Azure/kubectl-aks/pkg/runtime"
 )
 
 var connCheckCmd = &cobra.Command{
@@ -28,22 +29,20 @@ func init() {
 }
 
 func connCheckCmdRun(cmd *cobra.Command, args []string) error {
-	cred, err := utils.GetCredentials()
+	rt, err := buildRuntime()
 	if err != nil {
-		return fmt.Errorf("failed to authenticate: %w", err)
+		return err
 	}
 
-	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
-	if err != nil {
-		return fmt.Errorf("getting vm: %w", err)
-	}
-
-	// Check connectivity by executing "kubectl version" on the node. This
-	// command will try to contact the API server to get the Kubernetes version
-	// it is running. Use only the return value of the command, tough.
-	// Try /opt/bin/kubectl first, then fall back to kubectl in PATH.
+	// Check connectivity by executing "kubectl version" on the node.
 	command := "KUBECTL=$(command -v kubectl || echo kubectl); [ -x /opt/bin/kubectl ] && KUBECTL=/opt/bin/kubectl; $KUBECTL --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo -n $?"
-	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, nil, utils.OutputTruncateTail)
+	opts := &pkgruntime.RunOptions{
+		NodeName: utils.GetNodeName(),
+		Command:  command,
+		Timeout:  utils.DefaultRunCommandTimeoutInSeconds,
+	}
+
+	res, err := rt.RunCommand(cmd.Context(), opts)
 	if err != nil {
 		return fmt.Errorf("failed to run command that checks connectivity: %w", err)
 	}

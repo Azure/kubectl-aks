@@ -71,6 +71,14 @@ func (c *config) CurrentConfig() (*config, bool) {
 	return &config{Viper: c.Sub("nodes." + currentNode)}, true
 }
 
+// CurrentNodeName returns the current node name from the configuration, if set.
+func (c *config) CurrentNodeName() string {
+	if err := c.ReadInConfig(); err != nil {
+		return ""
+	}
+	return c.GetString(currentNodeKey)
+}
+
 // GetNodeConfig returns the configuration for the given node if it exists
 func (c *config) GetNodeConfig(node string) (*config, bool) {
 	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {

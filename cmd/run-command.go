@@ -8,6 +8,10 @@ import (
 	"os"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
+	pkgruntime "github.com/Azure/kubectl-aks/pkg/runtime"
+	"github.com/Azure/kubectl-aks/pkg/runtime/kubectldebug"
+	"github.com/Azure/kubectl-aks/pkg/runtime/vmss"
+	"github.com/kinvolk/inspektor-gadget/pkg/k8sutil"
 	"github.com/spf13/cobra"
 )
 
@@ -54,22 +58,18 @@ func init() {
 }
 
 func runCommandCmdRun(cmd *cobra.Command, args []string) error {
-	cred, err := utils.GetCredentials()
+	rt, err := buildRuntime()
 	if err != nil {
-		return fmt.Errorf("authenticating: %w", err)
+		return err
 	}
 
-	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
-	if err != nil {
-		return fmt.Errorf("getting vm: %w", err)
+	opts := &pkgruntime.RunOptions{
+		NodeName: utils.GetNodeName(),
+		Command:  command,
+		Timeout:  timeout,
 	}
 
-	outputTruncate := utils.OutputTruncateTail
-	if truncateHead {
-		outputTruncate = utils.OutputTruncateHead
-	}
-
-	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, &timeout, outputTruncate)
+	res, err := rt.RunCommand(cmd.Context(), opts)
 	if err != nil {
 		return fmt.Errorf("running command: %w", err)
 	}
@@ -77,4 +77,61 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(os.Stderr, "%s", res.Stderr)
 	fmt.Fprintf(os.Stdout, "%s", res.Stdout)
 	return nil
+}
+
+// buildRuntime creates the appropriate runtime based on the --runtime flag.
+// It checks (1) CLI flag, (2) config file for runtime preference.
+func buildRuntime() (pkgruntime.Runtime, error) {
+	resolveRuntimeFromConfig()
+
+	switch runtimeFlag {
+	case RuntimeAzureAPI:
+		return buildVMSSRuntime()
+	case RuntimeKubeAPI:
+		return buildKubectlDebugRuntime()
+	default:
+		return nil, fmt.Errorf("unsupported runtime %q: use %q or %q",
+			runtimeFlag, RuntimeAzureAPI, RuntimeKubeAPI)
+	}
+}
+
+func buildVMSSRuntime() (pkgruntime.Runtime, error) {
+	cred, err := utils.GetCredentials()
+	if err != nil {
+		return nil, fmt.Errorf("authenticating: %w", err)
+	}
+
+	vm, err := utils.VirtualMachineScaleSetVMFromConfig()
+	if err != nil {
+		return nil, fmt.Errorf("getting vm: %w", err)
+	}
+
+	outputTruncate := utils.OutputTruncateTail
+	if truncateHead {
+		outputTruncate = utils.OutputTruncateHead
+	}
+
+	return &vmss.Runtime{
+		Credential:     cred,
+		VM:             vm,
+		OutputTruncate: outputTruncate,
+	}, nil
+}
+
+func buildKubectlDebugRuntime() (pkgruntime.Runtime, error) {
+	config, err := utils.KubernetesConfigFlags.ToRESTConfig()
+	if err != nil {
+		return nil, fmt.Errorf("getting kubernetes config: %w", err)
+	}
+
+	clientset, err := k8sutil.NewClientsetFromConfigFlags(utils.KubernetesConfigFlags)
+	if err != nil {
+		return nil, fmt.Errorf("creating kubernetes client: %w", err)
+	}
+
+	return &kubectldebug.Runtime{
+		Clientset: clientset,
+		Config:    config,
+		Image:     debugImage,
+	}, nil
 }
