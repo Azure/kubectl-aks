@@ -19,10 +19,9 @@ on:
       - 'Makefile'
       - 'go.mod'
       - 'go.sum'
-    paths-ignore:
-      - '.krew.yaml'
-      - 'README.md'
-      - 'docs/**'
+      - '!.krew.yaml'
+      - '!README.md'
+      - '!docs/**'
   push:
     branches:
       - main
