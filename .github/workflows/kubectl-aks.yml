@@ -12,6 +12,16 @@ concurrency:
 
 on:
   pull_request:
+    paths:
+      - '**.go'
+      - '**.yml'
+      - '**.yaml'
+      - 'Makefile'
+      - 'go.mod'
+      - 'go.sum'
+      - '!.krew.yaml'
+      - '!README.md'
+      - '!docs/**'
   push:
     branches:
       - main
