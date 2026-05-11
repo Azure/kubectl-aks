@@ -8,8 +8,9 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/spf13/cobra"
+
+	"github.com/Azure/kubectl-aks/cmd/utils"
 )
 
 var connCheckCmd = &cobra.Command{
@@ -40,7 +41,8 @@ func connCheckCmdRun(cmd *cobra.Command, args []string) error {
 	// Check connectivity by executing "kubectl version" on the node. This
 	// command will try to contact the API server to get the Kubernetes version
 	// it is running. Use only the return value of the command, tough.
-	command := "kubectl --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo -n $?"
+	// Try /opt/bin/kubectl first, then fall back to kubectl in PATH.
+	command := "KUBECTL=$(command -v kubectl || echo kubectl); [ -x /opt/bin/kubectl ] && KUBECTL=/opt/bin/kubectl; $KUBECTL --kubeconfig /var/lib/kubelet/kubeconfig version > /dev/null; echo -n $?"
 	res, err := utils.RunCommand(cmd.Context(), cred, vm, &command, nil, utils.OutputTruncateTail)
 	if err != nil {
 		return fmt.Errorf("failed to run command that checks connectivity: %w", err)
