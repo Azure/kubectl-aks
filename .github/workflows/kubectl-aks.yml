@@ -341,6 +341,4 @@ jobs:
         pattern: "kubectl-aks-*-*-tar-gz/kubectl-aks-*-*.tar.gz"
         github-token: ${{ secrets.GITHUB_TOKEN }}
         release-url: ${{ steps.create_release.outputs.upload_url }}
-    - name: Update new version in krew-index
-      if: github.repository == 'azure/kubectl-aks'
-      uses: rajatjindal/krew-release-bot@v0.0.46
+

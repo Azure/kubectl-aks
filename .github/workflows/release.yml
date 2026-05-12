@@ -1,0 +1,19 @@
+name: Release
+on:
+  release:
+    types: [published]
+
+permissions: read-all
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v3
+    - name: Update new version in krew-index
+      if: github.repository == 'azure/kubectl-aks'
+      uses: rajatjindal/krew-release-bot@v0.0.46
+
