@@ -14,7 +14,6 @@ import (
 	"path"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -67,9 +66,11 @@ func newCachedInteractiveBrowserCredential() (*cachedInteractiveBrowserCredentia
 		return nil, fmt.Errorf("creating cache directory: %w", err)
 	}
 
-	client, err := public.New(developerSignOnClientID,
+	cloudCfg := GetCloudConfiguration()
+	client, err := public.New(
+		developerSignOnClientID,
 		public.WithCache(&tokenCache{file: file}),
-		public.WithAuthority(runtime.JoinPaths(cloud.AzurePublic.ActiveDirectoryAuthorityHost, organizationsTenantID)),
+		public.WithAuthority(runtime.JoinPaths(cloudCfg.ActiveDirectoryAuthorityHost, organizationsTenantID)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("creating public client: %w", err)
