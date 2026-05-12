@@ -24,6 +24,21 @@ available command and which one is the most suitable for your case:
 Take into account that `kubectl-aks` expects the cluster to use virtual machine
 scale sets, which is the case of an AKS cluster.
 
+## Runtimes
+
+`kubectl-aks` supports two runtimes for executing commands on nodes:
+
+| Runtime | Flag | Description                                                                                                                                                       |
+|---------|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `azure-api` | `--runtime azure-api` (default) | Executes commands via the Azure VMSS RunCommand API. Works regardless of Kubernetes control plane status. Requires Azure credentials and VMSS instance information. |
+| `kube-api` | `--runtime kube-api` | Creates a privileged debug pod on the target node using `nsenter` for host-level access. Requires a functioning Kubernetes API server.|
+
+Example using kube-api runtime:
+
+```
+kubectl aks run-command "hostname" --node my-node --runtime kube-api
+```
+
 You can get the node information needed to execute the commands directly from
 the [Azure portal](https://portal.azure.com/) or you can let `kubectl-aks` get
 that information for you. If you already have such a information, you can pass

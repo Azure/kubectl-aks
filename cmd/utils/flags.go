@@ -35,6 +35,11 @@ var (
 	resourceID        string
 )
 
+// GetNodeName returns the current node name from flags/config.
+func GetNodeName() string {
+	return node
+}
+
 // CommonFlags contains CLI flags common for all subcommands
 type CommonFlags struct {
 	Verbose bool
@@ -107,18 +112,21 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 		// If node or resource ID is set, we don't need to read the config file
 		// nor the environment variables because the CLI flags have precedence.
 		if !useFlagsOnly && node == "" && resourceID == "" {
-			config := config.New()
+			cfg := config.New()
 
-			if cc, ok := config.CurrentConfig(); ok {
-				config = cc
+			// If a current node is set in config, remember the name
+			currentNodeName := cfg.CurrentNodeName()
+
+			if cc, ok := cfg.CurrentConfig(); ok {
+				cfg = cc
 			}
 			// bind environment variables
-			config.AutomaticEnv()
-			config.SetEnvPrefix("kubectl_aks")
-			config.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+			cfg.AutomaticEnv()
+			cfg.SetEnvPrefix("kubectl_aks")
+			cfg.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 			// bind CLI flags
-			if err := config.BindPFlags(cmd.PersistentFlags()); err != nil {
+			if err := cfg.BindPFlags(cmd.PersistentFlags()); err != nil {
 				return fmt.Errorf("binding flags: %w", err)
 			}
 
@@ -126,12 +134,18 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 			// (1) CLI flag
 			// (2) environment variable
 			// (3) config file
-			node = config.GetString(NodeKey)
-			subscriptionID = config.GetString(SubscriptionIDKey)
-			nodeResourceGroup = config.GetString(NodeResourceGroupKey)
-			vmss = config.GetString(VMSSKey)
-			vmssInstanceID = config.GetString(VMSSInstanceIDKey)
-			resourceID = config.GetString(ResourceIDKey)
+			node = cfg.GetString(NodeKey)
+			subscriptionID = cfg.GetString(SubscriptionIDKey)
+			nodeResourceGroup = cfg.GetString(NodeResourceGroupKey)
+			vmss = cfg.GetString(VMSSKey)
+			vmssInstanceID = cfg.GetString(VMSSInstanceIDKey)
+			resourceID = cfg.GetString(ResourceIDKey)
+
+			// If node is still empty but we have a current node from config,
+			// use it (needed for kube-api runtime which only requires node name)
+			if node == "" && currentNodeName != "" {
+				node = currentNodeName
+			}
 		}
 
 		// validate the parameters
@@ -150,10 +164,13 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 				return errors.New("specify complete VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
 			return errors.New("specify either 'node' or 'id' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
-		} else if nodeSet {
-			if vmssInfoSet {
-				return errors.New("specify either 'node' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
+		} else if nodeSet && vmssInfoSet {
+			// Both node name and VMSS info available (e.g., from config).
+			// This is valid — the runtime will decide which to use.
+			if resourceIDSet {
+				return errors.New("specify either 'node' or 'id'")
 			}
+		} else if nodeSet {
 			if resourceIDSet {
 				return errors.New("specify either 'node' or 'id'")
 			}

@@ -67,6 +67,22 @@ If we are debugging a node while the Kubernetes control plane is up and running,
 kubectl aks run-command "ip route" --node aks-agentpool-12345678-vmss000000
 ```
 
+## Using kube-api runtime
+
+If you prefer to run commands via a privileged debug pod (instead of the Azure VMSS RunCommand API), you can use the `--runtime kube-api` flag. This creates an ephemeral pod on the target node with `nsenter` for full host-level access:
+
+```bash
+kubectl aks run-command "ip route" --node aks-agentpool-12345678-vmss000000 --runtime kube-api
+```
+
+You can also specify a custom container image for the debug pod:
+
+```bash
+kubectl aks run-command "hostname" --node my-node --runtime kube-api --debug-image alpine:latest
+```
+
+**Note:** The `kube-api` runtime requires a functioning Kubernetes API server and only needs the `--node` flag (not VMSS instance details).
+
 In addition, if we need to run multiple commands on a node, we can still use the [`config import`](./config.md#importing-configuration) command to import the information of all the nodes of our cluster, and this time we don't need to pass the cluster information as `run-command` will retrieve it from the API server:
 
 ```bash
