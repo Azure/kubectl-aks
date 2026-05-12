@@ -150,8 +150,11 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 		return nil, fmt.Errorf("getting credentials: %w", err)
 	}
 
+	cloudCfg := GetCloudConfiguration()
+	armOpts := ARMClientOptions(cloudCfg)
+
 	ctx := context.Background()
-	aksClient, err := armcontainerservice.NewManagedClustersClient(subID, creds, nil)
+	aksClient, err := armcontainerservice.NewManagedClustersClient(subID, creds, armOpts)
 	if err != nil {
 		return nil, fmt.Errorf("creating AKS client: %w", err)
 	}
@@ -160,7 +163,7 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 		return nil, fmt.Errorf("getting cluster: %w", err)
 	}
 	var nodePools []string
-	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subID, creds, nil)
+	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subID, creds, armOpts)
 	if err != nil {
 		return nil, fmt.Errorf("creating VMSS client: %w", err)
 	}
@@ -175,7 +178,7 @@ func VirtualMachineScaleSetVMsViaAzureAPI(subID, rg, clusterName string) (map[st
 		}
 	}
 	vmssVMs := make(map[string]*VirtualMachineScaleSetVM)
-	vmClient, err := armcompute.NewVirtualMachineScaleSetVMsClient(subID, creds, nil)
+	vmClient, err := armcompute.NewVirtualMachineScaleSetVMsClient(subID, creds, armOpts)
 	if err != nil {
 		return nil, fmt.Errorf("creating VMSS VMs client: %w", err)
 	}
@@ -239,7 +242,10 @@ func RunCommand(
 		timeout = to.IntPtr(DefaultRunCommandTimeoutInSeconds)
 	}
 
-	client, err := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, nil)
+	cloudCfg := GetCloudConfiguration()
+	armOpts := ARMClientOptions(cloudCfg)
+
+	client, err := armcompute.NewVirtualMachineScaleSetVMsClient(vm.SubscriptionID, cred, armOpts)
 	if err != nil {
 		return nil, fmt.Errorf("creating VMSS VMs client: %w", err)
 	}
