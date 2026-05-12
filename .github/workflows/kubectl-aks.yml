@@ -328,12 +328,13 @@ jobs:
         for i in kubectl-aks-*-*-tar-gz/kubectl-aks-*-*.tar.gz; do
           mv $i $(dirname $i)/$(basename $i .tar.gz)-${{ github.ref_name }}.tar.gz
         done
-    - name: Create Release
+    - name: Create Draft Release
       id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        name: Release ${{ github.ref }}
+        name: Release ${{ github.ref_name }}
+        draft: true
     - name: Upload kubectl-aks binaries to the release
       uses: csexton/release-asset-action@v2
       with:
