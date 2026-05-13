@@ -43,9 +43,13 @@ You can get the node information needed to execute the commands directly from
 the [Azure portal](https://portal.azure.com/) or you can let `kubectl-aks` get
 that information for you. If you already have such a information, you can pass
 it using the flags or environment variables. If you don't have it, `kubectl-aks`
-can retrieve it either from the Azure API or the Kubernetes API server. If you
-expect to use the same node multiple times, it is recommended to import the node
-information in the configuration file and set it as the default node, see the
+can retrieve it either from the Azure API or the Kubernetes API server using the
+[`config import`](docs/config.md#importing-configuration) command.
+
+`kubectl-aks` supports a **cluster-aware configuration model** — imported nodes
+are grouped by cluster, making it easy to manage multiple AKS clusters. When no
+node is explicitly specified, an interactive prompt lets you select a cluster and
+node, or run a command across all nodes in a cluster in parallel. See the
 [config](docs/config.md) command for further details.
 
 ## Install

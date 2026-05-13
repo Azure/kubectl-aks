@@ -1,0 +1,28 @@
+current-cluster: test-cluster
+current-node: test-node
+clusters:
+    test-cluster:
+        subscription: mySubID
+        resource-group: myRG
+        cluster-name: test-cluster
+        nodes:
+            test-node:
+                instance-id: myInsID
+                node-resource-group: myRG
+                subscription: mySubID
+                vmss: myVMSS
+            test-node-2:
+                instance-id: myInsID2
+                node-resource-group: myRG
+                subscription: mySubID
+                vmss: myVMSS
+    another-cluster:
+        subscription: otherSubID
+        resource-group: otherRG
+        cluster-name: another-cluster
+        nodes:
+            other-node:
+                instance-id: otherInsID
+                node-resource-group: otherRG
+                subscription: otherSubID
+                vmss: otherVMSS

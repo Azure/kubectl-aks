@@ -1,8 +1,13 @@
 # Config
 
-We can use the `config` command to configure node information for `kubectl-aks` commands.
-This allows ease of switching between different nodes and persisting the configuration. Nodes can be configured
-either specifying the `--node` or `--id` or VMSS instance information (`--subscription`, `--node-resource-group`, `--vmss`, `--instance-id`). All three options are mutually exclusive:
+We can use the `config` command to configure node and cluster information for
+`kubectl-aks` commands. This allows ease of switching between different clusters
+and nodes and persisting the configuration.
+
+Nodes are grouped under **clusters**, so that importing multiple AKS clusters
+keeps each cluster's nodes organized separately. When you run a command without
+specifying a node, `kubectl-aks` will present an interactive prompt to select a
+cluster and node.
 
 ```bash
 $ kubectl aks config --help
@@ -12,11 +17,15 @@ Usage:
   kubectl-aks config [command]
 
 Available Commands:
+  import             Import Kubernetes nodes in the configuration
+  list-clusters      List all clusters in the configuration
   set-node           Set a given node in the configuration
   show               Show the configuration
   unset-all          Unset all nodes in the configuration
+  unset-cluster      Remove a cluster and all its nodes from the configuration
   unset-current-node Unset the current node in the configuration
   unset-node         Unset a given node in the configuration
+  use-cluster        Set the current cluster in the configuration
   use-node           Set the current node in the configuration
 
 Flags:
@@ -26,80 +35,159 @@ Flags:
 Use "kubectl-aks config [command] --help" for more information about a command.
 ```
 
-As an example, we set a couple of nodes in the configuration (using VMSS instance information) and then switch between them:
+## Cluster-aware configuration
+
+Nodes are stored under clusters in the configuration file. This makes it easy to
+manage multiple AKS clusters at once:
+
+```bash
+# Import nodes from two different clusters
+$ kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name cluster-prod
+$ kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name cluster-dev
+
+# List imported clusters
+$ kubectl aks config list-clusters
+cluster-prod
+cluster-dev
+
+# Set the active cluster
+$ kubectl aks config use-cluster cluster-prod
+
+# Show the configuration
+$ kubectl aks config show
+current-cluster: cluster-prod
+clusters:
+    cluster-prod:
+        nodes:
+            aks-nodepool1-12345678-vmss000000:
+                instance-id: "0"
+                subscription: mySubID
+                node-resource-group: myNRG
+                vmss: myVMSS
+            aks-nodepool1-12345678-vmss000001:
+                instance-id: "1"
+                [...]
+    cluster-dev:
+        nodes:
+            aks-nodepool1-87654321-vmss000000:
+                instance-id: "0"
+                [...]
+```
+
+You can also manually set nodes within a cluster:
 
 ```bash
 $ kubectl aks config set-node node1 --subscription mySubID --node-resource-group myRG --vmss myVMSS --instance-id myInstanceID1
 $ kubectl aks config set-node node2 --id "/subscriptions/mySubID/resourceGroups/myRG/providers/Microsoft.Compute/virtualMachineScaleSets/myVMSS/virtualmachines/myInstanceID2"
-$ kubectl aks show
-nodes:
-    node1:
-        instance-id: myInstanceID1
-        node-resource-group: myRG
-        subscription: mySubID
-        vmss: myVMSS
-    node2:
-        instance-id: myInstanceID2
-        node-resource-group: myRG
-        subscription: mySubID
-        vmss: myVMSS
-
-$ kubectl aks config use-node node1
-$ kubectl aks check-apiserver-connectivity
-
-$ kubectl aks config use-node node2
-$ kubectl aks check-apiserver-connectivity
 ```
 
-There is also an option to unset node information from the configuration using
-the `unset-node`/`unset-all`/`unset-current-node` commands.
+### Switching between clusters and nodes
+
+```bash
+# Switch the active cluster
+$ kubectl aks config use-cluster cluster-prod
+
+# Switch the active node within the current cluster
+$ kubectl aks config use-node aks-nodepool1-12345678-vmss000000
+
+# Run a command on the active node
+$ kubectl aks run-command "hostname"
+```
+
+### Removing clusters and nodes
+
+```bash
+# Remove a specific cluster and all its nodes
+$ kubectl aks config unset-cluster cluster-dev
+
+# Unset the current node (but keep it in the config)
+$ kubectl aks config unset-current-node
+
+# Remove all configuration
+$ kubectl aks config unset-all
+```
+
+## Interactive selection
+
+When no `--node` or VMSS instance flags are provided and a cluster is configured,
+`kubectl-aks` will present an interactive prompt to select a node:
+
+```bash
+$ kubectl aks run-command "uptime"
+? Select node in cluster-prod:
+  ▸ (all nodes in cluster)
+    aks-nodepool1-12345678-vmss000000
+    aks-nodepool1-12345678-vmss000001
+    aks-nodepool1-12345678-vmss000002
+```
+
+Selecting **"(all nodes in cluster)"** will execute the command in parallel
+across all nodes in the cluster, displaying results grouped by node:
+
+```
+=== aks-nodepool1-12345678-vmss000000 ===
+ 12:30:00 up 5 days, ...
+
+=== aks-nodepool1-12345678-vmss000001 ===
+ 12:30:00 up 5 days, ...
+```
+
+You can also target a specific cluster with the `--cluster-name` flag:
+
+```bash
+kubectl aks run-command "uptime" --cluster-name cluster-prod
+```
 
 ## Importing configuration
 
-`kubectl-aks` can also import the node information from the Kubernetes API
-server or Azure API using the `config import` command. By default, if no flags
-are passed, `kubectl-aks` will try to retrieve the node information from the
-Kubernetes API server:
+`kubectl-aks` can import node information using the Azure API (default) or the
+Kubernetes API via the `config import` command. Imported nodes are automatically
+grouped under a cluster name.
+
+### From Azure API (default)
+
+By default, `config import` uses the Azure API. You must provide the
+`--subscription`, `--resource-group` and `--cluster-name` flags:
 
 ```bash
-We can also import the node information using the AKS cluster credentials already available in the `kubeconfig` file:
-
-```bash
-# Create a cluster
-$ az aks create ...
-$ az aks get-credentials ...
-$ kubectl get nodes
-NAME                                STATUS   ROLES   AGE   VERSION
-aks-agentpool-12345678-vmss000000   Ready    agent   4m    v1.23.15
-aks-agentpool-12345678-vmss000001   Ready    agent   4m    v1.23.15
-aks-agentpool-12345678-vmss000002   Ready    agent   4m    v1.23.15
-# Import nodes into kubectl-aks
-$ kubectl aks config import
+$ kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name myCluster
 $ kubectl aks config show
-nodes:
-    aks-agentpool-12345678-vmss000000:
-        instance-id: "0"
-        subscription: mySubID
-        node-resource-group: myNRG
-        vmss: myVMSS
-    aks-agentpool-12345678-vmss000001:
-        instance-id: "1"
-        [...]
-    aks-agentpool-12345678-vmss000002:
-        instance-id: "2"
-        [...]
-# Start using one of those nodes
-$ kubectl aks use-node aks-agentpool-12345678-vmss000000
+current-cluster: myCluster
+clusters:
+    myCluster:
+        nodes:
+            aks-agentpool-12345678-vmss000000:
+                instance-id: "0"
+                subscription: mySubID
+                node-resource-group: myNRG
+                vmss: myVMSS
+            [...]
 ```
 
-If the Kubernetes API server is not available or we can't rely on it for some
-reason (e.g. we are investigating connectivity issues between nodes and the API
-server), we can use the `--subscription`, `--resource-group` and
-`--cluster-name` flags to retrieve the node information from the Azure API:
+### From kubeconfig (--runtime kube-api)
+
+If the Kubernetes API server is available, you can import via kubeconfig by
+passing `--runtime kube-api`. The cluster name is auto-detected from the current
+kubeconfig context:
 
 ```bash
-kubectl aks config import --subscription mySubID --resource-group myRG --cluster-name myCluster
-kubectl aks config show
+# Create a cluster and get credentials
+$ az aks create ...
+$ az aks get-credentials ...
+
+# Import nodes via Kubernetes API
+$ kubectl aks config import --runtime kube-api
+$ kubectl aks config show
+current-cluster: my-cluster
+clusters:
+    my-cluster:
+        nodes:
+            aks-agentpool-12345678-vmss000000:
+                instance-id: "0"
+                subscription: mySubID
+                node-resource-group: myNRG
+                vmss: myVMSS
+            [...]
 ```
 
 ## Precedence of configuration
@@ -107,9 +195,10 @@ kubectl aks config show
 Apart from the configuration file, we can also use the flags and environment variables to
 pass the node information to the commands. The precedence of the configuration is the following:
 
-1. Flags
+1. Flags (`--node`, `--id`, or VMSS instance flags)
 2. Environment variables
-3. Configuration file
+3. Interactive cluster/node selection (when a cluster is configured)
+4. Configuration file (`current-node`)
 
 Using the flags:
 
@@ -126,3 +215,17 @@ or using the environment variables:
 ```bash
 KUBECTL_AKS_NODE=aks-agentpool-77471288-vmss000013 kubectl aks check-apiserver-connectivity
 ```
+
+## Legacy configuration
+
+If you have a configuration file from an older version of `kubectl-aks` that
+uses the flat node format (top-level `nodes:` without clusters), you will see a
+warning recommending you delete the old config and re-import:
+
+```
+WARNING: legacy config detected (nodes without clusters). Please delete
+~/.kubectl-aks/config.yaml and re-import using 'kubectl aks config import'.
+```
+
+The legacy format is still supported for backward compatibility, but the new
+cluster-aware format is recommended for managing multiple clusters.

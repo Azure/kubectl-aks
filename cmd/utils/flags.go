@@ -33,11 +33,17 @@ var (
 	vmss              string
 	vmssInstanceID    string
 	resourceID        string
+	clusterFlag       string
 )
 
 // GetNodeName returns the current node name from flags/config.
 func GetNodeName() string {
 	return node
+}
+
+// GetClusterFlag returns the --cluster flag value.
+func GetClusterFlag() string {
+	return clusterFlag
 }
 
 // CommonFlags contains CLI flags common for all subcommands
@@ -76,6 +82,12 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 		"Kubernetes node name.",
 	)
 	command.PersistentFlags().StringVarP(
+		&clusterFlag,
+		ClusterNameKey, "",
+		"",
+		"Target cluster name. When set, the command runs on all nodes in the cluster.",
+	)
+	command.PersistentFlags().StringVarP(
 		&subscriptionID,
 		SubscriptionIDKey, "",
 		"",
@@ -109,6 +121,11 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 	)
 
 	command.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// --cluster flag takes precedence for cluster-wide execution
+		if clusterFlag != "" {
+			return nil
+		}
+
 		// If node or resource ID is set, we don't need to read the config file
 		// nor the environment variables because the CLI flags have precedence.
 		if !useFlagsOnly && node == "" && resourceID == "" {
@@ -159,10 +176,34 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 		if resourceID != "" {
 			resourceIDSet = true
 		}
+
+		// If nothing is set, try interactive selection
 		if !nodeSet && !vmssInfoSet && !resourceIDSet {
 			if subscriptionID != "" || nodeResourceGroup != "" || vmss != "" || vmssInstanceID != "" {
 				return errors.New("specify complete VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 			}
+
+			rootCfg := config.New()
+			if err := rootCfg.ReadInConfig(); err == nil && rootCfg.IsSet("clusters") {
+				sel, err := InteractiveSelectNode(rootCfg)
+				if err != nil {
+					return fmt.Errorf("interactive selection: %w", err)
+				}
+				if sel.AllNodes {
+					clusterFlag = sel.Cluster
+				} else {
+					node = sel.Node
+					// Resolve VMSS info from config for the selected node
+					if nc, ok := rootCfg.GetClusterNodeConfig(sel.Cluster, sel.Node); ok {
+						subscriptionID = nc.GetString(SubscriptionIDKey)
+						nodeResourceGroup = nc.GetString(NodeResourceGroupKey)
+						vmss = nc.GetString(VMSSKey)
+						vmssInstanceID = nc.GetString(VMSSInstanceIDKey)
+					}
+				}
+				return nil
+			}
+
 			return errors.New("specify either 'node' or 'id' or VMMS instance information ('subscription', 'node-resource-group', 'vmss' and 'instance-id')")
 		} else if nodeSet && vmssInfoSet {
 			// Both node name and VMSS info available (e.g., from config).

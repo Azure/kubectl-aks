@@ -286,8 +286,8 @@ func RunCommand(
 	}
 
 	res, err := poller.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{Frequency: pollingFreq})
-	DefaultSpinner.Stop()
 	if err != nil {
+		DefaultSpinner.Stop()
 		return nil, fmt.Errorf("polling command response: %w", err)
 	}
 
@@ -295,24 +295,28 @@ func RunCommand(
 	log.Debugf("\nResponse:\n%s\n", string(b))
 	// TODO: Is it possible to have multiple values after using PollUntilDone()?
 	if len(res.Value) == 0 || res.Value[0] == nil {
+		DefaultSpinner.Stop()
 		return nil, errors.New("no response received after command execution")
 	}
 	val := res.Value[0]
 
 	// TODO: Isn't there a constant in the SDK to compare this?
 	if to.String(val.Code) != "ProvisioningState/succeeded" {
+		DefaultSpinner.Stop()
 		b, _ := json.MarshalIndent(res, "", "  ")
 		return nil, fmt.Errorf("command execution didn't succeed:\n%s", string(b))
 	}
 
 	result, err := parseRunCommandMessage(to.String(val.Message))
 	if err != nil {
+		DefaultSpinner.Stop()
 		return nil, err
 	}
 	if outputTruncate == OutputTruncateTail && result.isTruncated() {
 		result.Stdout = fmt.Sprintf("%s... (truncated)\n", result.Stdout)
 	}
 
+	DefaultSpinner.Stop()
 	return result, nil
 }
 

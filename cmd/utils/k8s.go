@@ -14,6 +14,16 @@ import (
 
 var KubernetesConfigFlags = genericclioptions.NewConfigFlags(false)
 
+// DetectKubeconfigClusterName returns the current kubeconfig context name,
+// which is typically the cluster name. Returns "" if it can't be determined.
+func DetectKubeconfigClusterName() string {
+	cfg, err := KubernetesConfigFlags.ToRawKubeConfigLoader().RawConfig()
+	if err != nil {
+		return ""
+	}
+	return cfg.CurrentContext
+}
+
 // GetNodeResourceID retrieve the Azure resource ID of a given node. In other
 // words, the resource ID of the VM scale set instance. It returns format:
 // /subscriptions/mySubID/resourceGroups/myRG/providers/myProvider/virtualMachineScaleSets/myVMSS/virtualMachines/myInsID
