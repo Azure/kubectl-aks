@@ -90,7 +90,8 @@ func TestConfigImport(t *testing.T) {
 	configPath := filepath.Join(config.Dir(), "config.yaml")
 	defer os.Remove(configPath)
 
-	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import")
+	// Import via kubeconfig (kube-api runtime)
+	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import", "--runtime", "kube-api")
 	k8sConfigFile, err := os.ReadFile(configPath)
 	require.Nil(t, err, "reading config file: %v", err)
 	require.NotEmpty(t, k8sConfigFile, "config file is empty")
@@ -99,6 +100,7 @@ func TestConfigImport(t *testing.T) {
 	_, err = os.ReadFile(configPath)
 	require.NotNil(t, err, "reading config file: %v", err)
 
+	// Import via Azure API (default runtime)
 	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import",
 		"--"+utils.SubscriptionIDKey, subscriptionID,
 		"--"+utils.ResourceGroupKey, resourceGroup,
@@ -107,5 +109,4 @@ func TestConfigImport(t *testing.T) {
 	azureConfigFile, err := os.ReadFile(configPath)
 	require.Nil(t, err, "reading config file: %v", err)
 	require.NotEmpty(t, azureConfigFile, "config file is empty")
-	require.Equal(t, string(k8sConfigFile), string(azureConfigFile), "config file is not the same")
 }

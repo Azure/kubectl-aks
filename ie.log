@@ -1,0 +1,119 @@
+time=2026-05-13T21:09:32+02:00 level=info msg=INI file 'README.ini' does not exist, skipping...
+time=2026-05-13T21:09:32+02:00 level=warning msg=The node before the codeblock `$ kubectl aks --help
+Azure Kubernetes Service (AKS) kubectl plugin
+
+Usage:
+  kubectl-aks [command]
+
+Available Commands:
+  check-apiserver-connectivity Check connectivity between the nodes and the Kubernetes API Server
+  completion                   Generate the autocompletion script for the specified shell
+  config                       Manage configuration
+  help                         Help about any command
+  run-command                  Run a command in a node
+  version                      Show version
+
+Flags:
+  -h, --help   help for kubectl-aks
+
+Use "kubectl-aks [command] --help" for more information about a command.
+` is not a paragraph, it is a Heading
+time=2026-05-13T21:09:32+02:00 level=debug msg=Found 6 code blocks CodeBlocks=[{bash kubectl krew install aks
+kubectl aks version
+ Using krew You can get the node information needed to execute the commands directly from
+the [Azure portal](https://portal.azure.com/) or you can let `kubectl-aks` get
+that information for you. If you already have such a information, you can pass
+it using the flags or environment variables. If you don't have it, `kubectl-aks`
+can retrieve it either from the Azure API or the Kubernetes API server using the
+[`config import`](docs/config.md#importing-configuration) command.
+
+`kubectl-aks` supports a **cluster-aware configuration model** — imported nodes
+are grouped by cluster, making it easy to manage multiple AKS clusters. When no
+node is explicitly specified, an interactive prompt lets you select a cluster and
+node, or run a command across all nodes in a cluster in parallel. See the
+[config](docs/config.md) command for further details.
+
+There is multiple ways to install the `kubectl-aks`.
+
+[krew](https://sigs.k8s.io/krew) is the recommended way to install `kubectl-aks`.
+You can follow the [krew's
+quickstart](https://krew.sigs.k8s.io/docs/user-guide/quickstart/) to install it
+and then install `kubectl-aks` by executing the following command: {  0 <nil>}} {bash kubectl krew uninstall aks
+ Using krew It can be uninstalled using the following command: {  0 <nil>}} {bash VERSION=$(curl -s https://api.github.com/repos/azure/kubectl-aks/releases/latest | jq -r .tag_name)
+curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C ${HOME}/.local/bin -xzf - kubectl-aks
+kubectl aks version
+ Install a specific release It is possible to download the asset for a given release and platform from the
+[releases page](https://github.com/azure/kubectl-aks/releases/), uncompress and
+move the `kubectl-aks` executable to any folder in your `$PATH`. {  0 <nil>}} {bash rm ${HOME}/.local/bin/kubectl-aks
+ Install a specific release It can be uninstalled by using the following command: {  0 <nil>}} {bash git clone https://github.com/Azure/kubectl-aks.git
+cd kubectl-aks
+# Build and copy the resulting binary in $HOME/.local/bin/
+make install
+kubectl aks version
+ Compile from source To build `kubectl-aks` from source, you'll need to have a Golang version 1.23
+or higher installed: {  0 <nil>}} {bash make uninstall
+ Compile from source It can be uninstalled by using the following command: {  0 <nil>}}]
+time=2026-05-13T21:09:32+02:00 level=warning msg=no URLs found in the Prerequisites section
+time=2026-05-13T21:09:32+02:00 level=info msg=Successfully built out the scenario: Azure Kubernetes Service (AKS) kubectl plugin
+time=2026-05-13T21:09:32+02:00 level=info msg=Changed directory to .
+time=2026-05-13T21:09:32+02:00 level=info msg=Executing command: kubectl krew install aks
+kubectl aks version
+ isInteractive=false
+time=2026-05-13T21:09:35+02:00 level=info msg=Command output to stdout:
+ v0.2.5
+
+time=2026-05-13T21:09:35+02:00 level=info msg=Command output to stderr:
+ Updated the local copy of plugin index.
+WARNING: Detected stdin, but discarding it because of --manifest or args
+Installing plugin: aks
+Installed plugin: aks
+\
+ | Use this plugin:
+ | 	kubectl aks
+ | Documentation:
+ | 	https://github.com/Azure/kubectl-aks
+/
+WARNING: You installed plugin "aks" from the krew-index plugin repository.
+   These plugins are not audited for security by the Krew maintainers.
+   Run them at your own risk.
+
+time=2026-05-13T21:09:35+02:00 level=info msg=Executing command: kubectl krew uninstall aks
+ isInteractive=false
+time=2026-05-13T21:09:35+02:00 level=info msg=Command output to stdout:
+ 
+time=2026-05-13T21:09:35+02:00 level=info msg=Command output to stderr:
+ Uninstalled plugin: aks
+
+time=2026-05-13T21:09:35+02:00 level=info msg=Executing command: VERSION=$(curl -s https://api.github.com/repos/azure/kubectl-aks/releases/latest | jq -r .tag_name)
+curl -sL https://github.com/azure/kubectl-aks/releases/latest/download/kubectl-aks-linux-amd64-${VERSION}.tar.gz | sudo tar -C ${HOME}/.local/bin -xzf - kubectl-aks
+kubectl aks version
+ isInteractive=false
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stdout:
+ v0.2.5
+
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stderr:
+ 
+time=2026-05-13T21:09:37+02:00 level=info msg=Executing command: rm ${HOME}/.local/bin/kubectl-aks
+ isInteractive=false
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stdout:
+ 
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stderr:
+ 
+time=2026-05-13T21:09:37+02:00 level=info msg=Executing command: git clone https://github.com/Azure/kubectl-aks.git
+cd kubectl-aks
+# Build and copy the resulting binary in $HOME/.local/bin/
+make install
+kubectl aks version
+ isInteractive=false
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stdout:
+ 
+time=2026-05-13T21:09:37+02:00 level=info msg=Command output to stderr:
+ fatal: destination path 'kubectl-aks' already exists and is not an empty directory.
+
+time=2026-05-13T21:09:37+02:00 level=error msg=Error executing command: command exited with 'exit status 128' and the message 'fatal: destination path 'kubectl-aks' already exists and is not an empty directory.
+'
+time=2026-05-13T21:09:37+02:00 level=info msg=Not fetching resource URIs because we're not in the OCD environment.
+time=2026-05-13T21:09:37+02:00 level=warning msg=No resource group name found.
+time=2026-05-13T21:09:37+02:00 level=info msg=Changed directory to /home/qasim/work/cloud/github.com/Azure/kubectl-aks
+time=2026-05-13T21:09:37+02:00 level=error msg=Error executing scenario: command exited with 'exit status 128' and the message 'fatal: destination path 'kubectl-aks' already exists and is not an empty directory.
+'

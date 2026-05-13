@@ -18,16 +18,16 @@ const (
 	configFilename = "config.yaml"
 )
 
-type config struct {
+type Config struct {
 	*viper.Viper
 	configPath string
 }
 
-func New() *config {
+func New() *Config {
 	v := viper.New()
 	configPath := path.Join(Dir(), configFilename)
 	v.SetConfigFile(configPath)
-	return &config{Viper: v, configPath: configPath}
+	return &Config{Viper: v, configPath: configPath}
 }
 
 // Dir returns the directory where the config file is stored.
@@ -42,7 +42,7 @@ func Dir() string {
 }
 
 // ShowConfig prints the configuration to stdout
-func (c *config) ShowConfig() error {
+func (c *Config) ShowConfig() error {
 	cfg, err := os.ReadFile(c.configPath)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("reading config file: %w", err)
@@ -52,40 +52,87 @@ func (c *config) ShowConfig() error {
 }
 
 // UnsetAllConfig removes all the configuration
-func (c *config) UnsetAllConfig() error {
+func (c *Config) UnsetAllConfig() error {
 	if err := os.Remove(c.configPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("deleting config file: %w", err)
 	}
 	return nil
 }
 
-// CurrentConfig returns the current node configuration if it exists
-func (c *config) CurrentConfig() (*config, bool) {
+// CurrentConfig returns the current node configuration if it exists.
+// It first checks cluster-aware config, then falls back to legacy.
+func (c *Config) CurrentConfig() (*Config, bool) {
 	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, false
 	}
+
 	currentNode := c.GetString(currentNodeKey)
 	if currentNode == "" {
 		return nil, false
 	}
-	return &config{Viper: c.Sub("nodes." + currentNode)}, true
+
+	// Cluster-aware: search for node in current cluster first, then all clusters
+	if c.IsSet(clustersKey) {
+		currentCluster := c.GetString(currentClusterKey)
+		if currentCluster != "" {
+			key := clustersKey + "." + currentCluster + ".nodes." + currentNode
+			if v := c.Sub(key); v != nil {
+				return &Config{Viper: v}, true
+			}
+		}
+		// Search all clusters
+		clusters, _ := c.ListClusters()
+		for _, cl := range clusters {
+			key := clustersKey + "." + cl + ".nodes." + currentNode
+			if v := c.Sub(key); v != nil {
+				return &Config{Viper: v}, true
+			}
+		}
+	}
+
+	// Legacy fallback
+	if v := c.Sub("nodes." + currentNode); v != nil {
+		return &Config{Viper: v}, true
+	}
+	return nil, false
 }
 
 // CurrentNodeName returns the current node name from the configuration, if set.
-func (c *config) CurrentNodeName() string {
+func (c *Config) CurrentNodeName() string {
 	if err := c.ReadInConfig(); err != nil {
 		return ""
 	}
 	return c.GetString(currentNodeKey)
 }
 
-// GetNodeConfig returns the configuration for the given node if it exists
-func (c *config) GetNodeConfig(node string) (*config, bool) {
+// GetNodeConfig returns the configuration for the given node if it exists.
+// It searches cluster-aware config first, then legacy.
+func (c *Config) GetNodeConfig(node string) (*Config, bool) {
 	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, false
 	}
+
+	// Cluster-aware: search current cluster first, then all clusters
+	if c.IsSet(clustersKey) {
+		currentCluster := c.GetString(currentClusterKey)
+		if currentCluster != "" {
+			key := clustersKey + "." + currentCluster + ".nodes." + node
+			if v := c.Sub(key); v != nil {
+				return &Config{Viper: v}, true
+			}
+		}
+		clusters, _ := c.ListClusters()
+		for _, cl := range clusters {
+			key := clustersKey + "." + cl + ".nodes." + node
+			if v := c.Sub(key); v != nil {
+				return &Config{Viper: v}, true
+			}
+		}
+	}
+
+	// Legacy fallback
 	if v := c.Sub("nodes." + node); v != nil {
-		return &config{Viper: v}, true
+		return &Config{Viper: v}, true
 	}
 	return nil, false
 }

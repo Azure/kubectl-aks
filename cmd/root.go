@@ -4,11 +4,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 )
 
 const (
@@ -31,6 +33,14 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "kubectl-aks",
 	Short: "Azure Kubernetes Service (AKS) kubectl plugin",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		cfg := config.New()
+		if cfg.IsLegacyConfig() {
+			fmt.Fprintln(os.Stderr, "⚠ Your config uses the old format (top-level 'nodes' without 'clusters').")
+			fmt.Fprintln(os.Stderr, "  Please run 'kubectl-aks config unset-all' and re-import with 'kubectl-aks config import'.")
+			fmt.Fprintln(os.Stderr)
+		}
+	},
 }
 
 func init() {

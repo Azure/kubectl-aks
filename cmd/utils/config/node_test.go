@@ -117,12 +117,12 @@ func TestNodeConfig(t *testing.T) {
 	})
 }
 
-func createAndReadTempConfig(t *testing.T) *config {
+func createAndReadTempConfig(t *testing.T) *Config {
 	tempDir := t.TempDir()
 	cfgPath := path.Join(tempDir, configFilename)
 	v := viper.New()
 	v.SetConfigFile(cfgPath)
-	cfg := &config{
+	cfg := &Config{
 		Viper:      v,
 		configPath: cfgPath,
 	}

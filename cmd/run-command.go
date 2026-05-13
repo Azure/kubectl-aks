@@ -6,8 +6,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/Azure/kubectl-aks/cmd/utils"
+	"github.com/Azure/kubectl-aks/cmd/utils/config"
 	pkgruntime "github.com/Azure/kubectl-aks/pkg/runtime"
 	"github.com/Azure/kubectl-aks/pkg/runtime/kubectldebug"
 	"github.com/Azure/kubectl-aks/pkg/runtime/vmss"
@@ -58,6 +60,11 @@ func init() {
 }
 
 func runCommandCmdRun(cmd *cobra.Command, args []string) error {
+	// Fan-out: run across all nodes in a cluster
+	if cl := utils.GetClusterFlag(); cl != "" {
+		return runCommandOnCluster(cmd, cl)
+	}
+
 	rt, err := buildRuntime()
 	if err != nil {
 		return err
@@ -77,6 +84,114 @@ func runCommandCmdRun(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(os.Stderr, "%s", res.Stderr)
 	fmt.Fprintf(os.Stdout, "%s", res.Stdout)
 	return nil
+}
+
+// nodeResult holds the output from a single node execution.
+type nodeResult struct {
+	NodeName string
+	Stdout   string
+	Stderr   string
+	Err      error
+}
+
+func runCommandOnCluster(cmd *cobra.Command, clusterName string) error {
+	cfg := config.New()
+	nodes, err := cfg.ListClusterNodes(clusterName)
+	if err != nil {
+		return fmt.Errorf("listing nodes for cluster %s: %w", clusterName, err)
+	}
+	if len(nodes) == 0 {
+		return fmt.Errorf("cluster %q has no nodes", clusterName)
+	}
+
+	results := make([]nodeResult, len(nodes))
+	var wg sync.WaitGroup
+
+	for i, nodeName := range nodes {
+		wg.Add(1)
+		go func(idx int, nn string) {
+			defer wg.Done()
+			results[idx] = runOnSingleNode(cmd, cfg, clusterName, nn)
+		}(i, nodeName)
+	}
+	wg.Wait()
+
+	for _, r := range results {
+		fmt.Fprintf(os.Stdout, "=== %s ===\n", r.NodeName)
+		if r.Err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: %s\n", r.Err)
+		} else {
+			if r.Stderr != "" {
+				fmt.Fprintf(os.Stderr, "%s", r.Stderr)
+			}
+			fmt.Fprintf(os.Stdout, "%s", r.Stdout)
+		}
+		fmt.Fprintln(os.Stdout)
+	}
+	return nil
+}
+
+func runOnSingleNode(cmd *cobra.Command, cfg *config.Config, clusterName, nodeName string) nodeResult {
+	nr := nodeResult{NodeName: nodeName}
+
+	nc, ok := cfg.GetClusterNodeConfig(clusterName, nodeName)
+	if !ok {
+		nr.Err = fmt.Errorf("node %q not found in cluster %q", nodeName, clusterName)
+		return nr
+	}
+
+	resolveRuntimeFromConfig()
+
+	var rt pkgruntime.Runtime
+
+	switch runtimeFlag {
+	case RuntimeKubeAPI:
+		r, err := buildKubectlDebugRuntime()
+		if err != nil {
+			nr.Err = err
+			return nr
+		}
+		rt = r
+	default: // azure-api
+		cred, err := utils.GetCredentials()
+		if err != nil {
+			nr.Err = fmt.Errorf("authenticating: %w", err)
+			return nr
+		}
+
+		vm := &utils.VirtualMachineScaleSetVM{
+			SubscriptionID:    nc.GetString(utils.SubscriptionIDKey),
+			NodeResourceGroup: nc.GetString(utils.NodeResourceGroupKey),
+			VMScaleSet:        nc.GetString(utils.VMSSKey),
+			InstanceID:        nc.GetString(utils.VMSSInstanceIDKey),
+		}
+
+		outputTruncate := utils.OutputTruncateTail
+		if truncateHead {
+			outputTruncate = utils.OutputTruncateHead
+		}
+
+		rt = &vmss.Runtime{
+			Credential:     cred,
+			VM:             vm,
+			OutputTruncate: outputTruncate,
+		}
+	}
+
+	opts := &pkgruntime.RunOptions{
+		NodeName: nodeName,
+		Command:  command,
+		Timeout:  timeout,
+	}
+
+	res, err := rt.RunCommand(cmd.Context(), opts)
+	if err != nil {
+		nr.Err = err
+		return nr
+	}
+	nr.Stdout = res.Stdout
+	nr.Stderr = res.Stderr
+	return nr
 }
 
 // buildRuntime creates the appropriate runtime based on the --runtime flag.
