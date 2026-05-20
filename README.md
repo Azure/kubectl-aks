@@ -18,11 +18,27 @@ Going through the following documentation will help you to understand each
 available command and which one is the most suitable for your case:
 
 - [run-command](docs/run-command.md)
-- [check-apiserver-connectivity](docs/check-apiserver-connectivity.md)
+- [check](docs/check.md)
 - [config](docs/config.md)
 
 Take into account that `kubectl-aks` expects the cluster to use virtual machine
 scale sets, which is the case of an AKS cluster.
+
+## Why use kubectl-aks?
+
+- **Works when the API server doesn't** — Run commands directly on cluster
+  nodes even when the Kubernetes control plane is unreachable. Ideal for
+  debugging issues that prevent the API server from functioning.
+- **Cluster-wide parallel execution** — Fan out commands across all nodes in
+  parallel to gather logs, inspect state, or verify services cluster-wide.
+- **Built-in health checks** — Ship with a library of ready-made verify and
+  trace checks for common issues (DNS, connectivity, OOM, disk, TCP). See the
+  [checks documentation](docs/check.md) for the full list.
+- **Extensible check framework** — [Adding a new check](docs/check.md#writing-a-new-check) is as simple as
+  implementing a small Go interface. The framework handles node targeting,
+  runtime selection, parallel execution, and result formatting.
+- **Familiar kubectl experience** — Follows kubectl conventions for flags,
+  output, and plugin discovery (`kubectl aks ...`).
 
 ## Runtimes
 

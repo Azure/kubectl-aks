@@ -12,9 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/Azure/kubectl-aks/cmd/utils"
 	"github.com/Azure/kubectl-aks/cmd/utils/config"
-	"github.com/stretchr/testify/require"
 )
 
 var integration = flag.Bool("integration", false, "run integration tests")
@@ -43,9 +44,27 @@ func TestMain(m *testing.M) {
 }
 
 func TestCheckAPIServerConnectivity(t *testing.T) {
-	out, err := runKubectlAKS(t, "check-apiserver-connectivity")
+	out, err := runKubectlAKS(t, "check", "verify", "apiserver-connectivity")
 	require.Empty(t, err, "runKubectlAKS() = %v, want nil", err)
 	require.Contains(t, out, "Connectivity check: succeeded")
+}
+
+func TestCheckDiskPressure(t *testing.T) {
+	out, err := runKubectlAKS(t, "check", "verify", "disk-pressure")
+	require.Empty(t, err, "runKubectlAKS() = %v, want nil", err)
+	require.Contains(t, out, "✓ Disk OK: root 0% used, inodes 0% used")
+}
+
+func TestCheckDNSResolution(t *testing.T) {
+	out, err := runKubectlAKS(t, "check", "verify", "dns-resolution")
+	require.Empty(t, err, "runKubectlAKS() = %v, want nil", err)
+	require.Contains(t, out, "✓ DNS resolution: all 5 required FQDNs resolved successfully")
+}
+
+func TestProcessHealthCheck(t *testing.T) {
+	out, err := runKubectlAKS(t, "check", "verify", "process-health")
+	require.Empty(t, err, "runKubectlAKS() = %v, want nil", err)
+	require.Contains(t, out, "✓ All critical processes running: kubelet=active, containerd=active")
 }
 
 func TestRunCommandOutput(t *testing.T) {
@@ -101,7 +120,8 @@ func TestConfigImport(t *testing.T) {
 	require.NotNil(t, err, "reading config file: %v", err)
 
 	// Import via Azure API (default runtime)
-	runCommand(t, os.Getenv("KUBECTL_AKS"), "config", "import",
+	runCommand(
+		t, os.Getenv("KUBECTL_AKS"), "config", "import",
 		"--"+utils.SubscriptionIDKey, subscriptionID,
 		"--"+utils.ResourceGroupKey, resourceGroup,
 		"--"+utils.ClusterNameKey, clusterName,
