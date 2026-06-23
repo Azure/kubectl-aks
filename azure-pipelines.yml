@@ -1,0 +1,170 @@
+# Azure DevOps pipeline for kubectl-aks integration tests.
+#
+# Integration tests need a real AKS cluster, so they live here (in Azure DevOps)
+# instead of in GitHub Actions. The GitHub workflow keeps build, lint, unit tests,
+# documentation tests and release.
+#
+# Prerequisites (configure in Azure DevOps before running):
+#   - An ARM service connection (default name: "azure-aks") with permission to
+#     create/delete AKS clusters in the target subscription. This replaces the
+#     GitHub `azure/login` federated-credential steps.
+#   - A secret pipeline variable `AZURE_AKS_SUBSCRIPTION_ID` with the subscription
+#     ID consumed by the integration tests.
+#
+# This pipeline is self-contained: it builds the kubectl-aks binary it needs for
+# each OS rather than depending on GitHub-produced artifacts.
+
+name: kubectl-aks integration tests
+
+variables:
+  GO_VERSION: '1.23'
+  AZURE_PREFIX: kubectl-aks-ci
+  AZURE_NODE_COUNT: 3 # multiple nodes are needed to allow running parallel 'run-command' against the same cluster
+  AZURE_VM_SIZE: Standard_D2_v5
+  AZURE_LOCATION: westus2
+  # Name of the ARM service connection used to authenticate to Azure.
+  AZURE_SERVICE_CONNECTION: azure-aks
+
+trigger:
+  branches:
+    include:
+      - main
+  tags:
+    include:
+      - 'v*'
+  paths:
+    include:
+      - '**/*.go'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - Makefile
+      - go.mod
+      - go.sum
+    exclude:
+      - .krew.yaml
+      - README.md
+      - docs/*
+
+pr:
+  paths:
+    include:
+      - '**/*.go'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - Makefile
+      - go.mod
+      - go.sum
+    exclude:
+      - .krew.yaml
+      - README.md
+      - docs/*
+
+stages:
+  - stage: integration
+    displayName: AKS integration tests
+    jobs:
+      - job: create_aks_cluster
+        displayName: Create AKS cluster
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: AzureCLI@2
+            displayName: Create AKS cluster and prepare list of nodes
+            name: nodes
+            inputs:
+              azureSubscription: $(AZURE_SERVICE_CONNECTION)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az aks create \
+                  --resource-group $(AZURE_PREFIX)-rg \
+                  --name $(AZURE_PREFIX)-amd64-cluster \
+                  --node-count $(AZURE_NODE_COUNT) \
+                  --node-vm-size $(AZURE_VM_SIZE) \
+                  --location $(AZURE_LOCATION) \
+                  --no-ssh-key
+
+                az aks get-credentials \
+                  --resource-group $(AZURE_PREFIX)-rg \
+                  --name $(AZURE_PREFIX)-amd64-cluster \
+                  --overwrite-existing
+
+                result=$(kubectl get nodes -o jsonpath={.items[*].metadata.name} | jq -R -s -c 'split(" ")')
+                echo "##vso[task.setvariable variable=result;isOutput=true]$result"
+
+      - job: integration_tests
+        displayName: Run integration tests
+        dependsOn: create_aks_cluster
+        variables:
+          nodes: $[ dependencies.create_aks_cluster.outputs['nodes.result'] ]
+        strategy:
+          matrix:
+            linux:
+              IMAGE: ubuntu-latest
+              TARGET_OS: linux
+            macos:
+              IMAGE: macOS-latest
+              TARGET_OS: darwin
+            windows:
+              IMAGE: windows-latest
+              TARGET_OS: windows
+        pool:
+          vmImage: $(IMAGE)
+        steps:
+          - bash: |
+              set -euo pipefail
+              if [ $(echo '$(nodes)' | jq -r '. | length') -lt $(System.TotalJobsInPhase) ]; then
+                echo "Not enough nodes to run parallel tests"
+                exit 1
+              fi
+            displayName: Ensure enough nodes are available to run parallel tests
+          - task: GoTool@0
+            displayName: Set up Go
+            inputs:
+              version: $(GO_VERSION)
+          - bash: make kubectl-aks
+            displayName: Build kubectl-aks binary
+          - task: AzureCLI@2
+            displayName: Run integration tests
+            inputs:
+              azureSubscription: $(AZURE_SERVICE_CONNECTION)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                # kubectl is already present on Linux agents; install it elsewhere.
+                if [ "$(TARGET_OS)" != "linux" ]; then
+                  az aks install-cli --client-version v1.28.2 || true
+                fi
+                az aks get-credentials \
+                  --resource-group $(AZURE_PREFIX)-rg \
+                  --name $(AZURE_PREFIX)-amd64-cluster \
+                  --overwrite-existing
+
+                export AZURE_RESOURCE_GROUP=$(AZURE_PREFIX)-rg
+                export AZURE_CLUSTER_NAME=$(AZURE_PREFIX)-amd64-cluster
+                export AZURE_SUBSCRIPTION_ID=$(AZURE_AKS_SUBSCRIPTION_ID)
+                export AZURE_NODE_NAME=$(echo '$(nodes)' | jq -r ".[$(System.JobPositionInPhase) - 1]")
+                export
+                make integration-test -o kubectl-aks
+
+      - job: delete_aks_cluster
+        displayName: Delete AKS cluster
+        dependsOn: integration_tests
+        condition: always()
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - task: AzureCLI@2
+            displayName: Delete AKS cluster
+            inputs:
+              azureSubscription: $(AZURE_SERVICE_CONNECTION)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az aks delete \
+                  --resource-group $(AZURE_PREFIX)-rg \
+                  --name $(AZURE_PREFIX)-amd64-cluster \
+                  --yes
