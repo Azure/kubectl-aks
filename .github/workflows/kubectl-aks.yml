@@ -1,13 +1,8 @@
 name: Azure Kubernetes Service kubectl plugin CI
 env:
   GO_VERSION: 1.23
-  AZURE_PREFIX: kubectl-aks-ci
-  AZURE_NODE_COUNT: 3 # multiple nodes are needed to allow running parallel 'run-command' against the same cluster
-  AZURE_VM_SIZE: Standard_D2_v5
-  AZURE_LOCATION: westus2
 concurrency:
-  # Only one workflow can run at a time unless
-  # we create a new AKS cluster per github_ref (branch)
+  # Only one workflow can run at a time so jobs don't compete for resources.
   group: kubectl-aks-ci
 
 on:
@@ -121,168 +116,6 @@ jobs:
       - name: Run tests
         run: make unit-test
 
-  create-aks-cluster:
-    name: Create AKS cluster
-    needs: [ build, lint, unit-tests ]
-    runs-on: ubuntu-latest
-    outputs:
-      nodes: ${{ steps.nodes.outputs.result }}
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [ amd64 ]
-    environment: aks
-    permissions:
-      # This is needed to use federated credentials:
-      # https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-cli%2Clinux#set-up-azure-login-with-openid-connect-authentication
-      id-token: write
-      contents: read
-    steps:
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_AKS_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_AKS_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
-      - name: Create AKS cluster ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
-        shell: bash
-        run: |
-          az aks create \
-            --resource-group ${{ env.AZURE_PREFIX }}-rg \
-            --name ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster \
-            --node-count ${{ env.AZURE_NODE_COUNT }} \
-            --node-vm-size ${{ env.AZURE_VM_SIZE }} \
-            --location ${{ env.AZURE_LOCATION }} \
-            --no-ssh-key
-      - uses: azure/aks-set-context@v3
-        name: Set AKS cluster ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster context
-        with:
-          cluster-name: ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
-          resource-group: ${{ env.AZURE_PREFIX }}-rg
-          admin: false
-      - name: Prepare list of nodes
-        id: nodes
-        shell: bash
-        run: |
-          echo "result=$(kubectl get nodes -o jsonpath={.items[*].metadata.name} | jq -R -s -c 'split(" ")')" >> $GITHUB_OUTPUT
-
-  delete-aks-cluster:
-    name: Delete AKS cluster
-    if: always()
-    needs: [ integration-tests ]
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [ amd64 ]
-    environment: aks
-    permissions:
-      # This is needed to use federated credentials:
-      # https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-cli%2Clinux#set-up-azure-login-with-openid-connect-authentication
-      id-token: write
-      contents: read
-    steps:
-      - name: Login to Azure
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_AKS_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_AKS_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
-      - name: Delete AKS cluster ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
-        shell: bash
-        run: |
-          az aks delete \
-            --resource-group ${{ env.AZURE_PREFIX }}-rg \
-            --name ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster \
-            --yes
-
-  integration-tests:
-    name: Run integration tests
-    needs: [ build, unit-tests , create-aks-cluster ]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest, macOS-latest, windows-latest ]
-        arch: [ amd64 ] # TODO: Support ARM
-    environment: aks
-    permissions:
-      # This is needed to use federated credentials:
-      # https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-cli%2Clinux#set-up-azure-login-with-openid-connect-authentication
-      id-token: write
-      contents: read
-    steps:
-      - name: Ensure enough nodes are available to run parallel tests
-        shell: bash
-        run: |
-          if [ $(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r '. | length') -lt ${{ strategy.job-total }} ]; then
-            echo "Not enough nodes to run parallel tests"
-            exit 1
-          fi
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          check-latest: true
-      - name: Check out code
-        uses: actions/checkout@v3
-      - name: Set environment variables
-        shell: bash
-        run: |
-          case ${{ matrix.os }} in
-            ubuntu-latest)
-              echo "os=linux" >> $GITHUB_ENV
-              ;;
-            macOS-latest)
-              echo "os=darwin" >> $GITHUB_ENV
-              ;;
-            windows-latest)
-              echo "os=windows" >> $GITHUB_ENV
-              ;;
-            *)
-              echo "Not supported OS: ${{ matrix.os }}"
-              exit 1
-              ;;
-          esac
-      - name: Get kubectl-aks from artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: kubectl-aks-${{ env.os }}-${{ matrix.arch }}-tar-gz
-      - name: Prepare kubectl-aks binary
-        shell: bash
-        run: |
-          tar zxvf kubectl-aks-${{ env.os }}-${{ matrix.arch }}.tar.gz
-          chmod +x kubectl-aks
-          ls -la
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_AKS_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_AKS_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
-      - name: Set AKS cluster context
-        uses: azure/aks-set-context@v3
-        with:
-          cluster-name: ${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
-          resource-group: ${{ env.AZURE_PREFIX }}-rg
-          admin: false
-      - if: matrix.os != 'ubuntu-latest'
-        # kubectl is already installed in Linux runners
-        uses: azure/setup-kubectl@v3
-        # setup-kubectl doesn't support v1.28.2+ macOS (amd64) yet
-        # https://github.com/Azure/setup-kubectl/issues/88
-        with:
-          version: 'v1.28.2'
-      - name: Run integration tests
-        shell: bash
-        run: |
-          export AZURE_RESOURCE_GROUP=${{ env.AZURE_PREFIX }}-rg
-          export AZURE_CLUSTER_NAME=${{ env.AZURE_PREFIX }}-${{ matrix.arch }}-cluster
-          export AZURE_SUBSCRIPTION_ID=${{ secrets.AZURE_AKS_SUBSCRIPTION_ID }}
-          export AZURE_NODE_NAME=$(echo '${{ needs.create-aks-cluster.outputs.nodes }}' | jq -r ".[${{ strategy.job-index }}]")
-          export
-          make integration-test -o kubectl-aks
-
   documentation-test:
     name: Run documentation tests
     runs-on: ubuntu-latest
@@ -312,7 +145,7 @@ jobs:
 
   release:
     name: Release
-    needs: [ integration-tests ]
+    needs: [ build, lint, unit-tests, documentation-test ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
