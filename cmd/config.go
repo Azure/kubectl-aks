@@ -14,6 +14,8 @@ import (
 	"github.com/Azure/kubectl-aks/cmd/utils/config"
 )
 
+var currentNode bool
+
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Manage configuration",
@@ -97,8 +99,9 @@ func init() {
 	}
 	rootCmd.AddCommand(configCmd)
 
-	configCmd.AddCommand(showConfigCmd, useNodeCmd, useClusterCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetClusterCmd, unsetAllCmd, setNodeCmd, listClustersCmd, importCmd)
+	configCmd.AddCommand(showConfigCmd, useNodeCmd, useClusterCmd, unsetCurrentNodeCmd, unsetNodeCmd, unsetClusterCmd, unsetAllCmd, setNodeCmd, listClustersCmd, importCmd, setSubscriptionCmd, unsetSubscriptionCmd)
 	utils.AddNodeFlagsOnly(setNodeCmd)
+	setNodeCmd.Flags().BoolVar(&currentNode, "current-node", false, "Set the node as the current node in the configuration")
 }
 
 func showConfigCmdRun(cmd *cobra.Command, args []string) error {
@@ -164,17 +167,27 @@ func setNodeCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	cfg := config.New()
+	var err error
 	if nf := cmd.Flag(utils.NodeKey).Value.String(); nf != "" {
-		return cfg.SetNodeConfigWithNodeFlag(args[0], nf)
+		err = cfg.SetNodeConfigWithNodeFlag(args[0], nf)
 	} else if rid := cmd.Flag(utils.ResourceIDKey).Value.String(); rid != "" {
-		return cfg.SetNodeConfigWithResourceIDFlag(args[0], rid)
+		err = cfg.SetNodeConfigWithResourceIDFlag(args[0], rid)
 	} else {
 		subID := cmd.Flag(utils.SubscriptionIDKey).Value.String()
 		nrg := cmd.Flag(utils.NodeResourceGroupKey).Value.String()
 		vmss := cmd.Flag(utils.VMSSKey).Value.String()
 		insID := cmd.Flag(utils.VMSSInstanceIDKey).Value.String()
-		return cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
+		err = cfg.SetNodeConfigWithVMSSInfoFlag(args[0], subID, nrg, vmss, insID)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	if currentNode {
+		return cfg.UseNodeConfig(args[0])
+	}
+	return nil
 }
 
 func importCmdCommand() *cobra.Command {
@@ -238,6 +251,24 @@ func importCmdCommand() *cobra.Command {
 
 			cfg := config.New()
 
+			var detectedSubID string
+			if subscriptionID != "" {
+				detectedSubID = subscriptionID
+			} else {
+				for _, vm := range vms {
+					if vm.SubscriptionID != "" {
+						detectedSubID = vm.SubscriptionID
+						break
+					}
+				}
+			}
+
+			if detectedSubID != "" {
+				if err := cfg.SetSubscription(detectedSubID); err != nil {
+					return fmt.Errorf("setting default subscription: %w", err)
+				}
+			}
+
 			if clusterName != "" {
 				if err := cfg.SetClusterMetadata(clusterName, subscriptionID, resourceGroup); err != nil {
 					return fmt.Errorf("setting cluster metadata for %s: %w", clusterName, err)
@@ -276,4 +307,30 @@ func importCmdCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&clusterName, utils.ClusterNameKey, "", "", "Name of the cluster")
 
 	return cmd
+}
+
+var setSubscriptionCmd = &cobra.Command{
+	Use:          "set-subscription",
+	Short:        "Set the default subscription in the configuration",
+	RunE:         setSubscriptionCmdRun,
+	SilenceUsage: true,
+}
+
+var unsetSubscriptionCmd = &cobra.Command{
+	Use:          "unset-subscription",
+	Short:        "Unset the default subscription in the configuration",
+	Args:         cobra.NoArgs,
+	RunE:         unsetSubscriptionCmdRun,
+	SilenceUsage: true,
+}
+
+func setSubscriptionCmdRun(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: %s <subscription ID>", cmd.CommandPath())
+	}
+	return config.New().SetSubscription(args[0])
+}
+
+func unsetSubscriptionCmdRun(cmd *cobra.Command, args []string) error {
+	return config.New().UnsetSubscription()
 }
