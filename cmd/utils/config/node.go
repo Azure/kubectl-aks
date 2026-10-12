@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+
+	"github.com/spf13/viper"
 )
 
 // UseNodeConfig sets the current node to use in the configuration.
@@ -201,8 +203,44 @@ func (c *Config) deleteConfig(deleteKey func(setting map[string]interface{})) er
 	if err != nil {
 		return fmt.Errorf("marshalling config: %w", err)
 	}
+	c.Viper = viper.New()
+	c.SetConfigFile(c.configPath)
 	if err = c.ReadConfig(bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("reading config: %w", err)
 	}
 	return nil
 }
+
+// SetSubscription sets the default subscription in the configuration.
+func (c *Config) SetSubscription(subID string) error {
+	if err := os.MkdirAll(Dir(), 0o700); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("reading config: %w", err)
+	}
+	c.Set("subscription", subID)
+	if err := c.WriteConfig(); err != nil {
+		return fmt.Errorf("writing config: %w", err)
+	}
+	return nil
+}
+
+// UnsetSubscription removes the default subscription from the configuration.
+func (c *Config) UnsetSubscription() error {
+	if err := c.ReadInConfig(); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("reading config: %w", err)
+	}
+	if c.IsSet("subscription") {
+		if err := c.deleteConfig(func(settings map[string]interface{}) {
+			delete(settings, "subscription")
+		}); err != nil {
+			return fmt.Errorf("deleting subscription config: %w", err)
+		}
+		if err := c.WriteConfig(); err != nil {
+			return fmt.Errorf("writing config: %w", err)
+		}
+	}
+	return nil
+}
+
