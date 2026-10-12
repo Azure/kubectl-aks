@@ -6,6 +6,24 @@ Take into account that all the
 [restrictions](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/run-command#restrictions)
 of running scripts in an Azure Linux VM also apply here.
 
+## Request identification
+
+Azure Resource Manager requests include `kubectl-aks` in the Azure SDK
+`User-Agent` header. This identifies the tool in service-side logs that retain
+the header; it does not add a separate telemetry endpoint or put command text
+or user identifiers in the header.
+
+The identifier applies to all ARM requests, including configuration discovery
+and checks. To find node command operations, also filter for
+`Microsoft.Compute/virtualMachineScaleSets/virtualMachines/runCommand/action`.
+This includes commands executed by `check`, not just the `run-command` subcommand.
+Count distinct operations rather than polling requests or status events; one
+CLI invocation can execute on multiple nodes.
+
+This only helps attribute requests from versions containing the identifier.
+Azure Activity Log does not necessarily expose the user agent, so access to
+Compute/ARM logs that retain it is still required.
+
 ## Running on a single node
 
 ### Regardless of the Kubernetes control plane status
