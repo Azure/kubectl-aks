@@ -1,0 +1,34 @@
+version: "2"
+run:
+  go: "1.24"
+linters:
+  default: none
+  enable:
+    - errorlint
+    - staticcheck
+  settings:
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    staticcheck:
+      # v2 merged stylecheck into staticcheck; exclude S (gosimple) and QF, which v1 config didn't enable.
+      checks:
+        - all
+        - -S*
+        - -QF*
+  exclusions:
+    generated: lax
+    rules:
+      # Ignore check: Packages must have a package comment
+      - linters:
+          - staticcheck
+        text: 'ST1000: at least one file in a package should have a package comment'
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofumpt

@@ -16,7 +16,7 @@ else
 	VERSION := $(TAG)-dirty
 endif
 
-LINTER_VERSION ?= v1.64.8
+LINTER_VERSION ?= v2.12.2
 
 include ie.mk
 
@@ -63,7 +63,7 @@ lint:
 	docker run --rm --env XDG_CACHE_HOME=/tmp/xdg_home_cache \
 		--env GOLANGCI_LINT_CACHE=/tmp/golangci_lint_cache \
 		--user $(shell id -u):$(shell id -g) -v $(shell pwd):/app -w /app \
-		golangci/golangci-lint:$(LINTER_VERSION) golangci-lint run
+		golangci/golangci-lint:$(LINTER_VERSION) golangci-lint run --fix
 
 # Install
 .PHONY: install
