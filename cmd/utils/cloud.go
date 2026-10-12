@@ -56,11 +56,14 @@ func GetCloudConfiguration() cloud.Configuration {
 	return cfg
 }
 
-// ARMClientOptions returns arm.ClientOptions configured for the given cloud.
+// ARMClientOptions configures the cloud and identifies kubectl-aks in ARM requests.
 func ARMClientOptions(cfg cloud.Configuration) *arm.ClientOptions {
 	return &arm.ClientOptions{
 		ClientOptions: policy.ClientOptions{
 			Cloud: cfg,
+			Telemetry: policy.TelemetryOptions{
+				ApplicationID: "kubectl-aks",
+			},
 		},
 	}
 }
