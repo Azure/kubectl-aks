@@ -1,6 +1,6 @@
 name: Azure Kubernetes Service kubectl plugin CI
 env:
-  GO_VERSION: 1.24
+  GO_VERSION: '1.26.9'
 concurrency:
   # Only one workflow can run at a time so jobs don't compete for resources.
   group: kubectl-aks-ci
@@ -171,4 +171,3 @@ jobs:
         pattern: "kubectl-aks-*-*-tar-gz/kubectl-aks-*-*.tar.gz"
         github-token: ${{ secrets.GITHUB_TOKEN }}
         release-url: ${{ steps.create_release.outputs.upload_url }}
-

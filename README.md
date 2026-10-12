@@ -110,7 +110,7 @@ rm ${HOME}/.local/bin/kubectl-aks
 
 ### Compile from source
 
-To build `kubectl-aks` from source, you'll need to have a Golang version 1.23
+To build `kubectl-aks` from source, you'll need to have a Golang version 1.26.9
 or higher installed:
 
 ```bash
