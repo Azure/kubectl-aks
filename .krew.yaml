@@ -30,6 +30,12 @@ spec:
     bin: kubectl-aks
   - selector:
       matchLabels:
+        os: linux
+        arch: arm64
+    {{addURIAndSha "https://github.com/Azure/kubectl-aks/releases/download/{{ .TagName }}/kubectl-aks-linux-arm64-{{ .TagName }}.tar.gz" .TagName }}
+    bin: kubectl-aks
+  - selector:
+      matchLabels:
         os: darwin
         arch: amd64
     {{addURIAndSha "https://github.com/Azure/kubectl-aks/releases/download/{{ .TagName }}/kubectl-aks-darwin-amd64-{{ .TagName }}.tar.gz" .TagName }}
