@@ -153,6 +153,12 @@ func addNodeFlags(command *cobra.Command, useFlagsOnly bool) {
 			// (3) config file
 			node = cfg.GetString(NodeKey)
 			subscriptionID = cfg.GetString(SubscriptionIDKey)
+			if subscriptionID == "" {
+				rootCfg := config.New()
+				if err := rootCfg.ReadInConfig(); err == nil {
+					subscriptionID = rootCfg.GetString(SubscriptionIDKey)
+				}
+			}
 			nodeResourceGroup = cfg.GetString(NodeResourceGroupKey)
 			vmss = cfg.GetString(VMSSKey)
 			vmssInstanceID = cfg.GetString(VMSSInstanceIDKey)

@@ -115,6 +115,32 @@ func TestNodeConfig(t *testing.T) {
 		testInstanceID := cfg.GetString("nodes.test-new-node.instance-id")
 		require.Equal(t, expectedInstanceID, testInstanceID, "cfg.GetString(nodes.test-new-node.instance-id) = %v, want %v", testInstanceID, expectedInstanceID)
 	})
+	t.Run("TestSetSubscription", func(t *testing.T) {
+		t.Parallel()
+		cfg := createAndReadTempConfig(t)
+		require.NotNil(t, cfg)
+
+		expectedSub := "test-sub-123"
+		err := cfg.SetSubscription(expectedSub)
+		require.Nil(t, err)
+
+		sub := cfg.GetString("subscription")
+		require.Equal(t, expectedSub, sub)
+	})
+	t.Run("TestUnsetSubscription", func(t *testing.T) {
+		t.Parallel()
+		cfg := createAndReadTempConfig(t)
+		require.NotNil(t, cfg)
+
+		err := cfg.SetSubscription("test-sub-123")
+		require.Nil(t, err)
+
+		err = cfg.UnsetSubscription()
+		require.Nil(t, err)
+
+		sub := cfg.GetString("subscription")
+		require.Empty(t, sub)
+	})
 }
 
 func createAndReadTempConfig(t *testing.T) *Config {
